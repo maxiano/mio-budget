@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestore Budget & Spese Personale</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+    <!-- Header / Navbar -->
+    <header class="bg-slate-900 text-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-4 py-5 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 p-2 rounded-lg">
+                    <i data-lucide="wallet" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Gestore Budget Personalizzato</h1>
+                    <p class="text-xs text-slate-400">Flusso di cassa reale con entrate ed uscite extra</p>
+                </div>
+            </div>
+            <!-- Selezione Mese -->
+            <div class="flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+                <i data-lucide="calendar" class="w-4 h-4 text-blue-400"></i>
+                <select id="monthSelect" onchange="changeMonth()" class="bg-transparent text-white font-semibold text-sm focus:outline-none cursor-pointer">
+                    <option value="Agosto_Prev" class="bg-slate-800">Agosto (Precedente) (1.800 €)</option>
+                    <option value="Settembre" class="bg-slate-800">Settembre (1.800 €)</option>
+                    <option value="Ottobre" class="bg-slate-800">Ottobre (2.500 €)</option>
+                    <option value="Novembre" class="bg-slate-800">Novembre (2.500 €)</option>
+                    <option value="Dicembre" class="bg-slate-800">Dicembre (2.500 €)</option>
+                    <option value="Gennaio" class="bg-slate-800">Gennaio (2.500 €)</option>
+                    <option value="Febbraio" class="bg-slate-800">Febbraio (2.500 €)</option>
+                    <option value="Marzo" class="bg-slate-800">Marzo (2.500 €)</option>
+                    <option value="Aprile" class="bg-slate-800">Aprile (2.500 €)</option>
+                    <option value="Maggio" class="bg-slate-800">Maggio (2.500 €)</option>
+                    <option value="Giugno" class="bg-slate-800">Giugno (2.500 €)</option>
+                    <option value="Luglio" class="bg-slate-800">Luglio (1.800 €)</option>
+                    <option value="Agosto" class="bg-slate-800">Agosto (1.800 €)</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-6xl mx-auto px-4 py-8">
+
+        <!-- Top Dashboard Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <!-- Entrata Totale Mese -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-semibold uppercase text-slate-500">Entrate Totali</span>
+                    <i data-lucide="arrow-down-left" class="w-4 h-4 text-emerald-500"></i>
+                </div>
+                <div id="displayIncome" class="text-2xl font-bold text-emerald-600">0,00 €</div>
+                <span id="incomeTag" class="text-xs font-medium text-slate-500">Base + Entrate Extra</span>
+            </div>
+
+            <!-- Spese Fisse Reali Mese -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:border-blue-300 transition-all cursor-pointer group" onclick="openFixedModal()">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-semibold uppercase text-slate-500 group-hover:text-blue-600 transition-colors">Uscite Fisse Mese</span>
+                    <i data-lucide="external-link" class="w-4 h-4 text-blue-500 group-hover:scale-110 transition-transform"></i>
+                </div>
+                <div id="displayFixed" class="text-2xl font-bold text-slate-900">0,00 €</div>
+                <span class="text-xs text-blue-600 font-medium underline flex items-center gap-1 mt-1">
+                    Solo voci fisse/scadenze <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                </span>
+            </div>
+
+            <!-- Uscite Variabili Inserite + Monitor Tetti -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-semibold uppercase text-slate-500">Spese Variabili</span>
+                    <i data-lucide="shopping-bag" class="w-4 h-4 text-rose-500"></i>
+                </div>
+                <div id="displayVariable" class="text-2xl font-bold text-rose-600">0,00 €</div>
+                <div class="mt-2 text-[11px] space-y-1 text-slate-500 border-t pt-2 border-slate-100">
+                    <div class="flex justify-between">
+                        <span>⛽ Fuel: <strong id="fuelBudgetBar">0/200€</strong></span>
+                        <span id="fuelBudgetPercent" class="font-bold text-slate-700">0%</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>🏠 Casa: <strong id="houseBudgetBar">0/400€</strong></span>
+                        <span id="houseBudgetPercent" class="font-bold text-slate-700">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rimanente / Disponibile -->
+            <div class="bg-blue-900 text-white p-5 rounded-xl shadow-md border border-blue-800">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-semibold uppercase text-blue-200">Disponibile Spesa</span>
+                    <i data-lucide="piggy-bank" class="w-5 h-5 text-emerald-400"></i>
+                </div>
+                <div id="displayRemaining" class="text-2xl font-bold text-emerald-400">+0,00 €</div>
+                <span class="text-xs text-blue-200">Margine effettivo per il mese</span>
+            </div>
+        </div>
+
+        <!-- Sezione Form Inserimenti -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            
+            <!-- Modulo Aggiungi Entrata Extra -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-emerald-200">
+                <h2 class="text-md font-bold text-emerald-800 mb-3 flex items-center gap-2">
+                    <i data-lucide="plus-circle" class="w-5 h-5 text-emerald-600"></i> Registra Nuova Entrata Extra
+                </h2>
+                <form id="incomeForm" onsubmit="addIncome(event)" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Categoria</label>
+                        <select id="incomeCategory" class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="Rimborso / Bonus">💰 Rimborso / Bonus Extra</option>
+                            <option value="Vendita Usato">🏷️ Vendita Usato / Attrezzatura</option>
+                            <option value="Prestazione Occasionale">🛠️ Prestazione / Consulenza</option>
+                            <option value="Altre Entrate">📥 Altra Entrata</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Importo (€)</label>
+                        <input type="number" id="incomeAmount" step="0.01" min="0.1" placeholder="Es. 150.00" required
+                            class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-semibold text-slate-900">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Descrizione / Note</label>
+                        <input type="text" id="incomeNote" placeholder="Es. Rimborso spese"
+                            class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Data</label>
+                        <input type="date" id="incomeDate" required
+                            class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none text-slate-600">
+                    </div>
+
+                    <div class="md:col-span-2 mt-1">
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-lg shadow-sm transition-all flex justify-center items-center gap-2 text-sm">
+                            <i data-lucide="arrow-up-right" class="w-4 h-4"></i> Registra Entrata
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Modulo Aggiungi Spesa Variabile -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-rose-200">
+                <h2 class="text-md font-bold text-rose-800 mb-3 flex items-center gap-2">
+                    <i data-lucide="minus-circle" class="w-5 h-5 text-rose-600"></i> Registra Nuova Spesa / Uscita
+                </h2>
+                <form id="expenseForm" onsubmit="addExpense(event)" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Categoria</label>
+                        <select id="expenseCategory" class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                            <option value="Carburante">⛽ Carburante (Max 200€)</option>
+                            <option value="Casa & Manutenzione">🏠 Casa & Manutenzione (Max 400€)</option>
+                            <option value="Spesa Alimentare">🛒 Spesa Alimentare</option>
+                            <option value="Tempo Libero & Svago">🏔️ Tempo Libero / Trekking / Uscite</option>
+                            <option value="Varie">📦 Altre Uscite Variabili</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Importo (€)</label>
+                        <input type="number" id="expenseAmount" step="0.01" min="0.1" placeholder="Es. 50.00" required
+                            class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none font-semibold text-slate-900">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Descrizione / Note</label>
+                        <input type="text" id="expenseNote" placeholder="Es. Rifornimento / Spesa casa"
+                            class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Data</label>
+                        <input type="date" id="expenseDate" required
+                            class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none text-slate-600">
+                    </div>
+
+                    <div class="md:col-span-2 mt-1">
+                        <button type="submit" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 rounded-lg shadow-sm transition-all flex justify-center items-center gap-2 text-sm">
+                            <i data-lucide="arrow-down-left" class="w-4 h-4"></i> Registra Uscita
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+
+        <!-- Sezione Tabelle Registri -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- Registro Entrate Extra -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-md font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="trending-up" class="w-5 h-5 text-emerald-600"></i> Entrate Extra Registrate
+                    </h2>
+                    <button onclick="clearIncomesData()" class="text-xs text-rose-600 hover:underline flex items-center gap-1">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Svuota Entrate
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px]">
+                                <th class="p-2.5">Data</th>
+                                <th class="p-2.5">Categoria</th>
+                                <th class="p-2.5">Note</th>
+                                <th class="p-2.5 text-right">Importo</th>
+                                <th class="p-2.5 text-center">Azione</th>
+                            </tr>
+                        </thead>
+                        <tbody id="incomeTableBody" class="divide-y divide-slate-100">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="emptyIncomeMessage" class="py-8 text-center text-slate-400 text-xs">
+                    Nessuna entrata extra registrata per questo mese.
+                </div>
+            </div>
+
+            <!-- Registro Uscite Variabili -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-md font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="trending-down" class="w-5 h-5 text-rose-600"></i> Uscite Variabili Registrate
+                    </h2>
+                    <button onclick="clearExpensesData()" class="text-xs text-rose-600 hover:underline flex items-center gap-1">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Svuota Uscite
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px]">
+                                <th class="p-2.5">Data</th>
+                                <th class="p-2.5">Categoria</th>
+                                <th class="p-2.5">Note</th>
+                                <th class="p-2.5 text-right">Importo</th>
+                                <th class="p-2.5 text-center">Azione</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expenseTableBody" class="divide-y divide-slate-100">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="emptyExpenseMessage" class="py-8 text-center text-slate-400 text-xs">
+                    Nessuna spesa variabile registrata per questo mese.
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- MODAL DETTAGLIO SPESE FISSE DEL MESE -->
+    <div id="fixedModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            
+            <div class="bg-slate-900 text-white p-5 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-600 p-2 rounded-lg">
+                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg">Uscite Fisse di <span id="modalMonthName" class="text-blue-400">Attuale</span></h3>
+                        <p class="text-xs text-slate-400">Elenco scadenze e uscite fisse rigorose</p>
+                    </div>
+                </div>
+                <button onclick="closeFixedModal()" class="text-slate-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-4">
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-600 uppercase text-xs">
+                            <th class="p-2.5 rounded-l-lg">Categoria</th>
+                            <th class="p-2.5">Voce</th>
+                            <th class="p-2.5">Note Scadenza</th>
+                            <th class="p-2.5 text-right rounded-r-lg">Importo Mese</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalFixedTableBody" class="divide-y divide-slate-100 text-slate-700">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bg-slate-50 p-4 border-t border-slate-200 flex justify-between items-center">
+                <div class="text-xs text-slate-500">Totale Uscite Fisse Mese: <strong id="modalFixedTotal" class="text-slate-900">0,00 €</strong></div>
+                <button onclick="closeFixedModal()" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-4 py-2 rounded-lg text-sm transition-colors">
+                    Chiudi
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Logic JS -->
+    <script>
+        // CONFIGURAZIONE SOGLIE E LIMITI DI SPESA
+        const CATEGORY_BUDGETS = {
+            "Carburante": 200.00,
+            "Casa & Manutenzione": 400.00
+        };
+
+        // SPESE FISSE STRICT (Invariabili)
+        const baseMonthlyFixed = [
+            { cat: "Casa", name: "Affitto Mensile", amount: 650.00, desc: "Mensile (il 10)" },
+            { cat: "Famiglia", name: "Mantenimento Valerio", amount: 305.00, desc: "Mensile" },
+            { cat: "Abbonamenti", name: "Wi-Fi / Internet Casa", amount: 54.90, desc: "Mensile" },
+            { cat: "Abbonamenti", name: "DAZN", amount: 34.99, desc: "Mensile" },
+            { cat: "Abbonamenti", name: "Prime Video", amount: 8.99, desc: "Mensile" },
+            { cat: "Abbonamenti", name: "Netflix", amount: 6.99, desc: "Mensile" }
+        ];
+
+        // SCADENZE PERIODICHE
+        const periodicExpenses = {
+            "Agosto_Prev": [],
+            "Settembre": [],
+            "Ottobre": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Ottobre" }],
+            "Novembre": [{ cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }],
+            "Dicembre": [
+                { cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Dicembre" },
+                { cat: "Trasporti", name: "Assicurazione Auto", amount: 350.00, desc: "Scadenza Annuale" }
+            ],
+            "Gennaio": [{ cat: "Trasporti", name: "Bollo Auto", amount: 180.00, desc: "Scadenza Annuale" }],
+            "Febbraio": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Febbraio" }],
+            "Marzo": [{ cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }],
+            "Aprile": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Aprile" }],
+            "Maggio": [{ cat: "Tempo Libero", name: "Rimessaggio Roulotte", amount: 500.00, desc: "Scadenza Annuale" }],
+            "Giugno": [
+                { cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Giugno" },
+                { cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }
+            ],
+            "Luglio": [],
+            "Agosto": [
+                { cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Agosto" },
+                { cat: "Extra", name: "Campeggio Estivo", amount: 1800.00, desc: "Quota Straordinaria" }
+            ]
+        };
+
+        const monthlyIncomes = {
+            "Agosto_Prev": { income: 1800, tag: "Solo Stipendio Expleo" },
+            "Settembre":   { income: 1800, tag: "Solo Stipendio Expleo" },
+            "Ottobre":     { income: 2500, tag: "Expleo + Rimborso Spes" },
+            "Novembre":    { income: 2500, tag: "Expleo + Rimborso Spes" },
+            "Dicembre":    { income: 2500, tag: "Expleo + Rimborso Spes" },
+            "Gennaio":     { income: 2500, tag: "Expleo + Rimborso Spes" },
+            "Febbraio":    { income: 2500, tag: "Expleo + Rimborso Spes" },
+            "Marzo":       { income: 2500, tag: "Expleo + Rimborso Spes" },
+            "Aprile":      { income: 2500, tag: "Expleo + Rimborso Spes" },
+            "Maggio":      { income: 2500, tag: "Expleo + Rimborso Spes" },
+            "Giugno":      { income: 2500, tag: "Expleo + Rimborso Spes" },
+            "Luglio":      { income: 1800, tag: "Solo Stipendio Expleo" },
+            "Agosto":      { income: 1800, tag: "Solo Stipendio Expleo" }
+        };
+
+        const monthLabels = {
+            "Agosto_Prev": "Agosto (Precedente)",
+            "Settembre": "Settembre",
+            "Ottobre": "Ottobre",
+            "Novembre": "Novembre",
+            "Dicembre": "Dicembre",
+            "Gennaio": "Gennaio",
+            "Febbraio": "Febbraio",
+            "Marzo": "Marzo",
+            "Aprile": "Aprile",
+            "Maggio": "Maggio",
+            "Giugno": "Giugno",
+            "Luglio": "Luglio",
+            "Agosto": "Agosto"
+        };
+
+        let currentMonth = "Agosto_Prev";
+
+        let expensesData = JSON.parse(localStorage.getItem("app_budget_expenses")) || {};
+        let incomesData = JSON.parse(localStorage.getItem("app_budget_incomes")) || {};
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const today = new Date();
+            document.getElementById("expenseDate").valueAsDate = today;
+            document.getElementById("incomeDate").valueAsDate = today;
+
+            const selectElem = document.getElementById("monthSelect");
+            if (selectElem) {
+                selectElem.value = currentMonth;
+            }
+
+            lucide.createIcons();
+            updateView();
+        });
+
+        function changeMonth() {
+            currentMonth = document.getElementById("monthSelect").value;
+            updateView();
+        }
+
+        function getMonthFixedExpenses(month) {
+            const extra = periodicExpenses[month] || [];
+            return [...baseMonthlyFixed, ...extra];
+        }
+
+        function openFixedModal() {
+            const displayName = monthLabels[currentMonth] || currentMonth;
+            document.getElementById("modalMonthName").innerText = displayName;
+            const modalBody = document.getElementById("modalFixedTableBody");
+            modalBody.innerHTML = "";
+
+            const list = getMonthFixedExpenses(currentMonth);
+            let total = 0;
+
+            if (list.length === 0) {
+                modalBody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400 text-xs">Nessuna uscita fissa per questo mese.</td></tr>`;
+            } else {
+                list.forEach(item => {
+                    total += item.amount;
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td class="p-2.5 font-semibold text-blue-900">${item.cat}</td>
+                        <td class="p-2.5 font-medium">${item.name}</td>
+                        <td class="p-2.5 text-xs text-slate-500">${item.desc}</td>
+                        <td class="p-2.5 text-right font-bold">${formatEuro(item.amount)}</td>
+                    `;
+                    modalBody.appendChild(tr);
+                });
+            }
+
+            document.getElementById("modalFixedTotal").innerText = formatEuro(total);
+            document.getElementById("fixedModal").classList.remove("hidden");
+        }
+
+        function closeFixedModal() {
+            document.getElementById("fixedModal").classList.add("hidden");
+        }
+
+        function updateView() {
+            const incomeInfo = monthlyIncomes[currentMonth] || { income: 0, tag: "Entrata Base" };
+            const currentExpenses = expensesData[currentMonth] || [];
+            const currentIncomes = incomesData[currentMonth] || [];
+
+            const extraIncomeTotal = currentIncomes.reduce((sum, item) => sum + item.amount, 0);
+            const totalIncome = incomeInfo.income + extraIncomeTotal;
+
+            const monthFixedList = getMonthFixedExpenses(currentMonth);
+            const totalFixedMonth = monthFixedList.reduce((sum, item) => sum + item.amount, 0);
+
+            const totalVariable = currentExpenses.reduce((sum, item) => sum + item.amount, 0);
+
+            const remaining = totalIncome - (totalFixedMonth + totalVariable);
+
+            document.getElementById("displayIncome").innerText = formatEuro(totalIncome);
+            document.getElementById("incomeTag").innerText = extraIncomeTotal > 0 
+                ? `${incomeInfo.tag} (+${formatEuro(extraIncomeTotal)} extra)` 
+                : incomeInfo.tag;
+
+            document.getElementById("displayFixed").innerText = formatEuro(totalFixedMonth);
+            document.getElementById("displayVariable").innerText = formatEuro(totalVariable);
+            
+            // Aggiornamento bar/indicatori di budget
+            const totalFuel = currentExpenses.filter(e => e.category === "Carburante").reduce((s, e) => s + e.amount, 0);
+            const totalHouse = currentExpenses.filter(e => e.category === "Casa & Manutenzione").reduce((s, e) => s + e.amount, 0);
+
+            document.getElementById("fuelBudgetBar").innerText = `${Math.round(totalFuel)}/200€`;
+            document.getElementById("fuelBudgetPercent").innerText = `${Math.round((totalFuel / 200) * 100)}%`;
+
+            document.getElementById("houseBudgetBar").innerText = `${Math.round(totalHouse)}/400€`;
+            document.getElementById("houseBudgetPercent").innerText = `${Math.round((totalHouse / 400) * 100)}%`;
+
+            const remainingElem = document.getElementById("displayRemaining");
+            remainingElem.innerText = (remaining >= 0 ? "+" : "") + formatEuro(remaining);
+            
+            if (remaining < 0) {
+                remainingElem.className = "text-2xl font-bold text-rose-400";
+            } else {
+                remainingElem.className = "text-2xl font-bold text-emerald-400";
+            }
+
+            renderExpenseTable(currentExpenses);
+            renderIncomeTable(currentIncomes);
+            lucide.createIcons();
+        }
+
+        function addIncome(e) {
+            e.preventDefault();
+            const cat = document.getElementById("incomeCategory").value;
+            const amount = parseFloat(document.getElementById("incomeAmount").value);
+            const note = document.getElementById("incomeNote").value.trim();
+            const date = document.getElementById("incomeDate").value;
+
+            if (!incomesData[currentMonth]) {
+                incomesData[currentMonth] = [];
+            }
+
+            incomesData[currentMonth].push({
+                id: Date.now(),
+                category: cat,
+                amount: amount,
+                note: note || "-",
+                date: date
+            });
+
+            localStorage.setItem("app_budget_incomes", JSON.stringify(incomesData));
+
+            document.getElementById("incomeAmount").value = "";
+            document.getElementById("incomeNote").value = "";
+            
+            updateView();
+        }
+
+        function addExpense(e) {
+            e.preventDefault();
+            const cat = document.getElementById("expenseCategory").value;
+            const amount = parseFloat(document.getElementById("expenseAmount").value);
+            const note = document.getElementById("expenseNote").value.trim();
+            const date = document.getElementById("expenseDate").value;
+
+            if (!expensesData[currentMonth]) {
+                expensesData[currentMonth] = [];
+            }
+
+            // CONTROLLO / VERIFICA LIMITE DI SPESA (SOGLIA MAX)
+            if (CATEGORY_BUDGETS[cat]) {
+                const limit = CATEGORY_BUDGETS[cat];
+                const currentSpentInCat = expensesData[currentMonth]
+                    .filter(item => item.category === cat)
+                    .reduce((sum, item) => sum + item.amount, 0);
+
+                const projectedTotal = currentSpentInCat + amount;
+
+                if (projectedTotal > limit) {
+                    const availableMargin = limit - currentSpentInCat;
+                    alert(`⚠️ LIMITE DI SPESA SUPERATO!\n\nPer la categoria "${cat}" hai impostato un tetto massimo di ${formatEuro(limit)} per questo mese.\n\n• Già speso finora: ${formatEuro(currentSpentInCat)}\n• Margine rimasto: ${formatEuro(Math.max(0, availableMargin))}\n• Nuova spesa tentata: ${formatEuro(amount)}\n\nL'operazione è stata bloccata.`);
+                    return; // Interrompe l'inserimento
+                }
+            }
+
+            expensesData[currentMonth].push({
+                id: Date.now(),
+                category: cat,
+                amount: amount,
+                note: note || "-",
+                date: date
+            });
+
+            localStorage.setItem("app_budget_expenses", JSON.stringify(expensesData));
+
+            document.getElementById("expenseAmount").value = "";
+            document.getElementById("expenseNote").value = "";
+            
+            updateView();
+        }
+
+        function deleteIncome(id) {
+            incomesData[currentMonth] = incomesData[currentMonth].filter(item => item.id !== id);
+            localStorage.setItem("app_budget_incomes", JSON.stringify(incomesData));
+            updateView();
+        }
+
+        function deleteExpense(id) {
+            expensesData[currentMonth] = expensesData[currentMonth].filter(item => item.id !== id);
+            localStorage.setItem("app_budget_expenses", JSON.stringify(expensesData));
+            updateView();
+        }
+
+        function clearIncomesData() {
+            const displayName = monthLabels[currentMonth] || currentMonth;
+            if (confirm(`Svuotare tutte le entrate extra di ${displayName}?`)) {
+                incomesData[currentMonth] = [];
+                localStorage.setItem("app_budget_incomes", JSON.stringify(incomesData));
+                updateView();
+            }
+        }
+
+        function clearExpensesData() {
+            const displayName = monthLabels[currentMonth] || currentMonth;
+            if (confirm(`Svuotare tutte le spese variabili di ${displayName}?`)) {
+                expensesData[currentMonth] = [];
+                localStorage.setItem("app_budget_expenses", JSON.stringify(expensesData));
+                updateView();
+            }
+        }
+
+        function renderIncomeTable(list) {
+            const tbody = document.getElementById("incomeTableBody");
+            const emptyMsg = document.getElementById("emptyIncomeMessage");
+            tbody.innerHTML = "";
+
+            if (list.length === 0) {
+                emptyMsg.classList.remove("hidden");
+                return;
+            }
+
+            emptyMsg.classList.add("hidden");
+            list.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            list.forEach(item => {
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-2.5 font-medium text-slate-600 text-xs">${formatDate(item.date)}</td>
+                    <td class="p-2.5"><span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[11px] font-semibold">${item.category}</span></td>
+                    <td class="p-2.5 text-slate-600 text-xs">${item.note}</td>
+                    <td class="p-2.5 text-right font-bold text-emerald-600 text-xs">+${formatEuro(item.amount)}</td>
+                    <td class="p-2.5 text-center">
+                        <button onclick="deleteIncome(${item.id})" class="text-slate-400 hover:text-rose-600 transition-colors">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderExpenseTable(list) {
+            const tbody = document.getElementById("expenseTableBody");
+            const emptyMsg = document.getElementById("emptyExpenseMessage");
+            tbody.innerHTML = "";
+
+            if (list.length === 0) {
+                emptyMsg.classList.remove("hidden");
+                return;
+            }
+
+            emptyMsg.classList.add("hidden");
+            list.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            list.forEach(item => {
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-2.5 font-medium text-slate-600 text-xs">${formatDate(item.date)}</td>
+                    <td class="p-2.5"><span class="bg-rose-50 text-rose-700 px-2 py-0.5 rounded text-[11px] font-semibold">${item.category}</span></td>
+                    <td class="p-2.5 text-slate-600 text-xs">${item.note}</td>
+                    <td class="p-2.5 text-right font-bold text-slate-900 text-xs">-${formatEuro(item.amount)}</td>
+                    <td class="p-2.5 text-center">
+                        <button onclick="deleteExpense(${item.id})" class="text-slate-400 hover:text-rose-600 transition-colors">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function formatEuro(val) {
+            return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(val);
+        }
+
+        function formatDate(dStr) {
+            if (!dStr) return "-";
+            const [y, m, d] = dStr.split("-");
+            return `${d}/${m}/${y}`;
+        }
+    </script>
+</body>
+</html>
