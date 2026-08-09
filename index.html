@@ -291,56 +291,77 @@
     </div>
 
     <script>
-        const firebaseConfig = {
-            databaseURL: "https://budget-app-maxiano-default-rtdb.europe-west1.firebasedatabase.app/"
-        };
+    // 1. Configurazione Firebase (Aggiungi le tue chiavi complete)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDFQbKY8HA83xRlFk_OMNIFF_BAQMuP8HI",
+      authDomain: "gestione-spese-d905a.firebaseapp.com",
+      databaseURL: "https://gestione-spese-d905a-default-rtdb.firebaseio.com",
+      projectId: "gestione-spese-d905a",
+      storageBucket: "gestione-spese-d905a.firebasestorage.app",
+      messagingSenderId: "518124443080",
+      appId: "1:518124443080:web:676fce0a4e6ad6168d9cfd",
+      measurementId: "G-T6B3VVSZNQ"
+    };
+
+    // 2. Inizializzazione sicura
+    let auth, db;
+    if (typeof firebase !== "undefined") {
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.database();
+        auth = firebase.auth();
+        db = firebase.database();
+    } else {
+        alert("Errore nel caricamento delle librerie Firebase. Controlla la connessione internet.");
+    }
 
-        let currentUser = null;
-        let expensesData = {};
-        let incomesData = {};
-        let currentMonth = "Agosto_Prev";
+    // 3. Stato dell'Applicazione
+    let currentUser = null;
+    let expensesData = {};
+    let incomesData = {};
+    let currentMonth = "Agosto_Prev";
 
-        const CATEGORY_BUDGETS = { "Carburante": 200.00, "Casa & Manutenzione": 400.00 };
-        const baseMonthlyFixed = [
-            { cat: "Casa", name: "Affitto Mensile", amount: 650.00, desc: "Mensile (il 10)" },
-            { cat: "Famiglia", name: "Mantenimento Valerio", amount: 305.00, desc: "Mensile" },
-            { cat: "Abbonamenti", name: "Wi-Fi / Internet Casa", amount: 54.90, desc: "Mensile" },
-            { cat: "Abbonamenti", name: "DAZN", amount: 34.99, desc: "Mensile" },
-            { cat: "Abbonamenti", name: "Prime Video", amount: 8.99, desc: "Mensile" },
-            { cat: "Abbonamenti", name: "Netflix", amount: 6.99, desc: "Mensile" }
-        ];
-        const periodicExpenses = {
-            "Agosto_Prev": [], "Settembre": [],
-            "Ottobre": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Ottobre" }],
-            "Novembre": [{ cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }],
-            "Dicembre": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Dicembre" }, { cat: "Trasporti", name: "Assicurazione Auto", amount: 350.00, desc: "Scadenza Annuale" }],
-            "Gennaio": [{ cat: "Trasporti", name: "Bollo Auto", amount: 180.00, desc: "Scadenza Annuale" }],
-            "Febbraio": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Febbraio" }],
-            "Marzo": [{ cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }],
-            "Aprile": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Aprile" }],
-            "Maggio": [{ cat: "Tempo Libero", name: "Rimessaggio Roulotte", amount: 500.00, desc: "Scadenza Annuale" }],
-            "Giugno": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Giugno" }, { cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }],
-            "Luglio": [],
-            "Agosto": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Agosto" }, { cat: "Extra", name: "Campeggio Estivo", amount: 1800.00, desc: "Quota Straordinaria" }]
-        };
-        const monthlyIncomes = {
-            "Agosto_Prev": { income: 1800, tag: "Expleo" }, "Settembre": { income: 1800, tag: "Expleo" },
-            "Ottobre": { income: 2500, tag: "Expleo + Spes" }, "Novembre": { income: 2500, tag: "Expleo + Spes" },
-            "Dicembre": { income: 2500, tag: "Expleo + Spes" }, "Gennaio": { income: 2500, tag: "Expleo + Spes" },
-            "Febbraio": { income: 2500, tag: "Expleo + Spes" }, "Marzo": { income: 2500, tag: "Expleo + Spes" },
-            "Aprile": { income: 2500, tag: "Expleo + Spes" }, "Maggio": { income: 2500, tag: "Expleo + Spes" },
-            "Giugno": { income: 2500, tag: "Expleo + Spes" }, "Luglio": { income: 1800, tag: "Expleo" }, "Agosto": { income: 1800, tag: "Expleo" }
-        };
+    const CATEGORY_BUDGETS = { "Carburante": 200.00, "Casa & Manutenzione": 400.00 };
+    const baseMonthlyFixed = [
+        { cat: "Casa", name: "Affitto Mensile", amount: 650.00, desc: "Mensile (il 10)" },
+        { cat: "Famiglia", name: "Mantenimento Valerio", amount: 305.00, desc: "Mensile" },
+        { cat: "Abbonamenti", name: "Wi-Fi / Internet Casa", amount: 54.90, desc: "Mensile" },
+        { cat: "Abbonamenti", name: "DAZN", amount: 34.99, desc: "Mensile" },
+        { cat: "Abbonamenti", name: "Prime Video", amount: 8.99, desc: "Mensile" },
+        { cat: "Abbonamenti", name: "Netflix", amount: 6.99, desc: "Mensile" }
+    ];
+    const periodicExpenses = {
+        "Agosto_Prev": [], "Settembre": [],
+        "Ottobre": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Ottobre" }],
+        "Novembre": [{ cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }],
+        "Dicembre": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Dicembre" }, { cat: "Trasporti", name: "Assicurazione Auto", amount: 350.00, desc: "Scadenza Annuale" }],
+        "Gennaio": [{ cat: "Trasporti", name: "Bollo Auto", amount: 180.00, desc: "Scadenza Annuale" }],
+        "Febbraio": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Febbraio" }],
+        "Marzo": [{ cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }],
+        "Aprile": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Aprile" }],
+        "Maggio": [{ cat: "Tempo Libero", name: "Rimessaggio Roulotte", amount: 500.00, desc: "Scadenza Annuale" }],
+        "Giugno": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Giugno" }, { cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }],
+        "Luglio": [],
+        "Agosto": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Agosto" }, { cat: "Extra", name: "Campeggio Estivo", amount: 1800.00, desc: "Quota Straordinaria" }]
+    };
+    const monthlyIncomes = {
+        "Agosto_Prev": { income: 1800, tag: "Expleo" }, "Settembre": { income: 1800, tag: "Expleo" },
+        "Ottobre": { income: 2500, tag: "Expleo + Spes" }, "Novembre": { income: 2500, tag: "Expleo + Spes" },
+        "Dicembre": { income: 2500, tag: "Expleo + Spes" }, "Gennaio": { income: 2500, tag: "Expleo + Spes" },
+        "Febbraio": { income: 2500, tag: "Expleo + Spes" }, "Marzo": { income: 2500, tag: "Expleo + Spes" },
+        "Aprile": { income: 2500, tag: "Expleo + Spes" }, "Maggio": { income: 2500, tag: "Expleo + Spes" },
+        "Giugno": { income: 2500, tag: "Expleo + Spes" }, "Luglio": { income: 1800, tag: "Expleo" }, "Agosto": { income: 1800, tag: "Expleo" }
+    };
 
-        document.addEventListener("DOMContentLoaded", () => {
-            const today = new Date();
-            document.getElementById("expenseDate").valueAsDate = today;
-            document.getElementById("incomeDate").valueAsDate = today;
+    // 4. Listener DOM
+    document.addEventListener("DOMContentLoaded", () => {
+        const today = new Date();
+        document.getElementById("expenseDate").valueAsDate = today;
+        document.getElementById("incomeDate").valueAsDate = today;
+        
+        if (typeof lucide !== "undefined") {
             lucide.createIcons();
+        }
 
+        if (auth) {
             auth.onAuthStateChanged(user => {
                 if (user) {
                     currentUser = user;
@@ -351,178 +372,186 @@
                     document.getElementById("authScreen").classList.remove("hidden");
                 }
             });
-        });
+        }
+    });
 
-        async function handleAuth(e) {
-            e.preventDefault();
-            const email = document.getElementById("authEmail").value;
-            const password = document.getElementById("authPassword").value;
-            const errDiv = document.getElementById("authError");
-            errDiv.classList.add("hidden");
+    async function handleAuth(e) {
+        e.preventDefault();
+        if (!auth) return alert("Firebase Auth non è pronto.");
+        
+        const email = document.getElementById("authEmail").value;
+        const password = document.getElementById("authPassword").value;
+        const errDiv = document.getElementById("authError");
+        errDiv.classList.add("hidden");
 
-            try {
-                await auth.signInWithEmailAndPassword(email, password);
-            } catch (err) {
-                if (err.code === 'auth/user-not-found') {
-                    try {
-                        await auth.createUserWithEmailAndPassword(email, password);
-                    } catch (createErr) {
-                        errDiv.innerText = createErr.message;
-                        errDiv.classList.remove("hidden");
-                    }
-                } else {
-                    errDiv.innerText = err.message;
+        try {
+            await auth.signInWithEmailAndPassword(email, password);
+        } catch (err) {
+            if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+                try {
+                    await auth.createUserWithEmailAndPassword(email, password);
+                } catch (createErr) {
+                    errDiv.innerText = createErr.message;
                     errDiv.classList.remove("hidden");
                 }
+            } else {
+                errDiv.innerText = err.message;
+                errDiv.classList.remove("hidden");
             }
         }
+    }
 
-        function logout() { auth.signOut(); }
+    function logout() { 
+        if (auth) auth.signOut(); 
+    }
 
-        function listenToDatabase() {
-            db.ref("user_budget").on("value", (snapshot) => {
-                const data = snapshot.val() || {};
-                expensesData = data.expenses || {};
-                incomesData = data.incomes || {};
-                updateView();
-            });
-        }
-
-        function changeMonth() {
-            currentMonth = document.getElementById("monthSelect").value;
+    function listenToDatabase() {
+        if (!db) return;
+        db.ref("user_budget").on("value", (snapshot) => {
+            const data = snapshot.val() || {};
+            expensesData = data.expenses || {};
+            incomesData = data.incomes || {};
             updateView();
-        }
+        });
+    }
 
-        function getMonthFixedExpenses(month) {
-            return [...baseMonthlyFixed, ...(periodicExpenses[month] || [])];
-        }
+    function changeMonth() {
+        currentMonth = document.getElementById("monthSelect").value;
+        updateView();
+    }
 
-        function updateView() {
-            const incomeInfo = monthlyIncomes[currentMonth] || { income: 0, tag: "Base" };
-            const currentExpenses = Object.values(expensesData[currentMonth] || {});
-            const currentIncomes = Object.values(incomesData[currentMonth] || {});
+    function getMonthFixedExpenses(month) {
+        return [...baseMonthlyFixed, ...(periodicExpenses[month] || [])];
+    }
 
-            const extraIncomeTotal = currentIncomes.reduce((sum, item) => sum + item.amount, 0);
-            const totalIncome = incomeInfo.income + extraIncomeTotal;
-            const totalFixedMonth = getMonthFixedExpenses(currentMonth).reduce((sum, item) => sum + item.amount, 0);
-            const totalVariable = currentExpenses.reduce((sum, item) => sum + item.amount, 0);
-            const remaining = totalIncome - (totalFixedMonth + totalVariable);
+    function updateView() {
+        const incomeInfo = monthlyIncomes[currentMonth] || { income: 0, tag: "Base" };
+        const currentExpenses = Object.values(expensesData[currentMonth] || {});
+        const currentIncomes = Object.values(incomesData[currentMonth] || {});
 
-            document.getElementById("displayIncome").innerText = formatEuro(totalIncome);
-            document.getElementById("incomeTag").innerText = extraIncomeTotal > 0 ? `${incomeInfo.tag} (+${formatEuro(extraIncomeTotal)})` : incomeInfo.tag;
-            document.getElementById("displayFixed").innerText = formatEuro(totalFixedMonth);
-            document.getElementById("displayVariable").innerText = formatEuro(totalVariable);
+        const extraIncomeTotal = currentIncomes.reduce((sum, item) => sum + item.amount, 0);
+        const totalIncome = incomeInfo.income + extraIncomeTotal;
+        const totalFixedMonth = getMonthFixedExpenses(currentMonth).reduce((sum, item) => sum + item.amount, 0);
+        const totalVariable = currentExpenses.reduce((sum, item) => sum + item.amount, 0);
+        const remaining = totalIncome - (totalFixedMonth + totalVariable);
 
-            const totalFuel = currentExpenses.filter(e => e.category === "Carburante").reduce((s, e) => s + e.amount, 0);
-            const totalHouse = currentExpenses.filter(e => e.category === "Casa & Manutenzione").reduce((s, e) => s + e.amount, 0);
-            document.getElementById("fuelBudgetBar").innerText = `${Math.round(totalFuel)}/200€`;
-            document.getElementById("houseBudgetBar").innerText = `${Math.round(totalHouse)}/400€`;
+        document.getElementById("displayIncome").innerText = formatEuro(totalIncome);
+        document.getElementById("incomeTag").innerText = extraIncomeTotal > 0 ? `${incomeInfo.tag} (+${formatEuro(extraIncomeTotal)})` : incomeInfo.tag;
+        document.getElementById("displayFixed").innerText = formatEuro(totalFixedMonth);
+        document.getElementById("displayVariable").innerText = formatEuro(totalVariable);
 
-            const remainingElem = document.getElementById("displayRemaining");
-            remainingElem.innerText = (remaining >= 0 ? "+" : "") + formatEuro(remaining);
-            remainingElem.className = remaining < 0 ? "text-lg md:text-xl font-bold text-rose-400" : "text-lg md:text-xl font-bold text-emerald-400";
+        const totalFuel = currentExpenses.filter(e => e.category === "Carburante").reduce((s, e) => s + e.amount, 0);
+        const totalHouse = currentExpenses.filter(e => e.category === "Casa & Manutenzione").reduce((s, e) => s + e.amount, 0);
+        document.getElementById("fuelBudgetBar").innerText = `${Math.round(totalFuel)}/200€`;
+        document.getElementById("houseBudgetBar").innerText = `${Math.round(totalHouse)}/400€`;
 
-            renderTables(currentIncomes, currentExpenses);
-            lucide.createIcons();
-        }
+        const remainingElem = document.getElementById("displayRemaining");
+        remainingElem.innerText = (remaining >= 0 ? "+" : "") + formatEuro(remaining);
+        remainingElem.className = remaining < 0 ? "text-lg md:text-xl font-bold text-rose-400" : "text-lg md:text-xl font-bold text-emerald-400";
 
-        function addIncome(e) {
-            e.preventDefault();
-            const cat = document.getElementById("incomeCategory").value;
-            const amount = parseFloat(document.getElementById("incomeAmount").value);
-            const note = document.getElementById("incomeNote").value.trim() || "-";
-            const date = document.getElementById("incomeDate").value;
-            const newId = Date.now().toString();
+        renderTables(currentIncomes, currentExpenses);
+        if (typeof lucide !== "undefined") lucide.createIcons();
+    }
 
-            db.ref(`user_budget/incomes/${currentMonth}/${newId}`).set({
-                id: newId, category: cat, amount, note, date
-            });
+    function addIncome(e) {
+        e.preventDefault();
+        if (!db) return;
+        const cat = document.getElementById("incomeCategory").value;
+        const amount = parseFloat(document.getElementById("incomeAmount").value);
+        const note = document.getElementById("incomeNote").value.trim() || "-";
+        const date = document.getElementById("incomeDate").value;
+        const newId = Date.now().toString();
 
-            document.getElementById("incomeAmount").value = "";
-            document.getElementById("incomeNote").value = "";
-        }
+        db.ref(`user_budget/incomes/${currentMonth}/${newId}`).set({
+            id: newId, category: cat, amount, note, date
+        });
 
-        function addExpense(e) {
-            e.preventDefault();
-            const cat = document.getElementById("expenseCategory").value;
-            const amount = parseFloat(document.getElementById("expenseAmount").value);
-            const note = document.getElementById("expenseNote").value.trim() || "-";
-            const date = document.getElementById("expenseDate").value;
+        document.getElementById("incomeAmount").value = "";
+        document.getElementById("incomeNote").value = "";
+    }
 
-            const currentExpenses = Object.values(expensesData[currentMonth] || {});
-            if (CATEGORY_BUDGETS[cat]) {
-                const limit = CATEGORY_BUDGETS[cat];
-                const currentSpent = currentExpenses.filter(i => i.category === cat).reduce((s, i) => s + i.amount, 0);
-                if (currentSpent + amount > limit) {
-                    alert(`⚠️ LIMITE SUPERATO!\n\nPer "${cat}" hai impostato un tetto di ${formatEuro(limit)}.\nSpesi finora: ${formatEuro(currentSpent)}.`);
-                    return;
-                }
-            }
+    function addExpense(e) {
+        e.preventDefault();
+        if (!db) return;
+        const cat = document.getElementById("expenseCategory").value;
+        const amount = parseFloat(document.getElementById("expenseAmount").value);
+        const note = document.getElementById("expenseNote").value.trim() || "-";
+        const date = document.getElementById("expenseDate").value;
 
-            const newId = Date.now().toString();
-            db.ref(`user_budget/expenses/${currentMonth}/${newId}`).set({
-                id: newId, category: cat, amount, note, date
-            });
-
-            document.getElementById("expenseAmount").value = "";
-            document.getElementById("expenseNote").value = "";
-        }
-
-        function deleteIncome(id) { db.ref(`user_budget/incomes/${currentMonth}/${id}`).remove(); }
-        function deleteExpense(id) { db.ref(`user_budget/expenses/${currentMonth}/${id}`).remove(); }
-
-        function clearIncomesData() {
-            if (confirm("Svuotare entrate extra del mese?")) {
-                db.ref(`user_budget/incomes/${currentMonth}`).remove();
+        const currentExpenses = Object.values(expensesData[currentMonth] || {});
+        if (CATEGORY_BUDGETS[cat]) {
+            const limit = CATEGORY_BUDGETS[cat];
+            const currentSpent = currentExpenses.filter(i => i.category === cat).reduce((s, i) => s + i.amount, 0);
+            if (currentSpent + amount > limit) {
+                alert(`⚠️ LIMITE SUPERATO!\n\nPer "${cat}" hai impostato un tetto di ${formatEuro(limit)}.\nSpesi finora: ${formatEuro(currentSpent)}.`);
+                return;
             }
         }
 
-        function clearExpensesData() {
-            if (confirm("Svuotare uscite variabili del mese?")) {
-                db.ref(`user_budget/expenses/${currentMonth}`).remove();
-            }
+        const newId = Date.now().toString();
+        db.ref(`user_budget/expenses/${currentMonth}/${newId}`).set({
+            id: newId, category: cat, amount, note, date
+        });
+
+        document.getElementById("expenseAmount").value = "";
+        document.getElementById("expenseNote").value = "";
+    }
+
+    function deleteIncome(id) { if (db) db.ref(`user_budget/incomes/${currentMonth}/${id}`).remove(); }
+    function deleteExpense(id) { if (db) db.ref(`user_budget/expenses/${currentMonth}/${id}`).remove(); }
+
+    function clearIncomesData() {
+        if (confirm("Svuotare entrate extra del mese?") && db) {
+            db.ref(`user_budget/incomes/${currentMonth}`).remove();
         }
+    }
 
-        function renderTables(incomes, expenses) {
-            const incBody = document.getElementById("incomeTableBody");
-            const expBody = document.getElementById("expenseTableBody");
-            incBody.innerHTML = ""; expBody.innerHTML = "";
-
-            document.getElementById("emptyIncomeMessage").classList.toggle("hidden", incomes.length > 0);
-            document.getElementById("emptyExpenseMessage").classList.toggle("hidden", expenses.length > 0);
-
-            incomes.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(i => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `<td class="p-2">${formatDate(i.date)}</td><td class="p-2"><span class="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded text-[10px] font-bold">${i.category}</span></td><td class="p-2 text-slate-500">${i.note}</td><td class="p-2 text-right font-bold text-emerald-600">+${formatEuro(i.amount)}</td><td class="p-2 text-center"><button onclick="deleteIncome('${i.id}')" class="text-slate-400 hover:text-rose-600"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></td>`;
-                incBody.appendChild(tr);
-            });
-
-            expenses.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(e => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `<td class="p-2">${formatDate(e.date)}</td><td class="p-2"><span class="bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded text-[10px] font-bold">${e.category}</span></td><td class="p-2 text-slate-500">${e.note}</td><td class="p-2 text-right font-bold text-slate-900">-${formatEuro(e.amount)}</td><td class="p-2 text-center"><button onclick="deleteExpense('${e.id}')" class="text-slate-400 hover:text-rose-600"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></td>`;
-                expBody.appendChild(tr);
-            });
+    function clearExpensesData() {
+        if (confirm("Svuotare uscite variabili del mese?") && db) {
+            db.ref(`user_budget/expenses/${currentMonth}`).remove();
         }
+    }
 
-        function openFixedModal() {
-            document.getElementById("modalMonthName").innerText = currentMonth;
-            const modalBody = document.getElementById("modalFixedTableBody");
-            modalBody.innerHTML = "";
-            const list = getMonthFixedExpenses(currentMonth);
-            let total = 0;
-            list.forEach(i => {
-                total += i.amount;
-                const tr = document.createElement("tr");
-                tr.innerHTML = `<td class="p-2 font-semibold text-blue-900">${i.cat}</td><td class="p-2">${i.name}</td><td class="p-2 text-slate-400">${i.desc}</td><td class="p-2 text-right font-bold">${formatEuro(i.amount)}</td>`;
-                modalBody.appendChild(tr);
-            });
-            document.getElementById("modalFixedTotal").innerText = formatEuro(total);
-            document.getElementById("fixedModal").classList.remove("hidden");
-        }
+    function renderTables(incomes, expenses) {
+        const incBody = document.getElementById("incomeTableBody");
+        const expBody = document.getElementById("expenseTableBody");
+        incBody.innerHTML = ""; expBody.innerHTML = "";
 
-        function closeFixedModal() { document.getElementById("fixedModal").classList.add("hidden"); }
-        function formatEuro(val) { return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(val); }
-        function formatDate(dStr) { if (!dStr) return "-"; const [y, m, d] = dStr.split("-"); return `${d}/${m}`; }
-    </script>
+        document.getElementById("emptyIncomeMessage").classList.toggle("hidden", incomes.length > 0);
+        document.getElementById("emptyExpenseMessage").classList.toggle("hidden", expenses.length > 0);
+
+        incomes.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(i => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td class="p-2">${formatDate(i.date)}</td><td class="p-2"><span class="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded text-[10px] font-bold">${i.category}</span></td><td class="p-2 text-slate-500">${i.note}</td><td class="p-2 text-right font-bold text-emerald-600">+${formatEuro(i.amount)}</td><td class="p-2 text-center"><button onclick="deleteIncome('${i.id}')" class="text-slate-400 hover:text-rose-600"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></td>`;
+            incBody.appendChild(tr);
+        });
+
+        expenses.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(e => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td class="p-2">${formatDate(e.date)}</td><td class="p-2"><span class="bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded text-[10px] font-bold">${e.category}</span></td><td class="p-2 text-slate-500">${e.note}</td><td class="p-2 text-right font-bold text-slate-900">-${formatEuro(e.amount)}</td><td class="p-2 text-center"><button onclick="deleteExpense('${e.id}')" class="text-slate-400 hover:text-rose-600"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></td>`;
+            expBody.appendChild(tr);
+        });
+    }
+
+    function openFixedModal() {
+        document.getElementById("modalMonthName").innerText = currentMonth;
+        const modalBody = document.getElementById("modalFixedTableBody");
+        modalBody.innerHTML = "";
+        const list = getMonthFixedExpenses(currentMonth);
+        let total = 0;
+        list.forEach(i => {
+            total += i.amount;
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td class="p-2 font-semibold text-blue-900">${i.cat}</td><td class="p-2">${i.name}</td><td class="p-2 text-slate-400">${i.desc}</td><td class="p-2 text-right font-bold">${formatEuro(i.amount)}</td>`;
+            modalBody.appendChild(tr);
+        });
+        document.getElementById("modalFixedTotal").innerText = formatEuro(total);
+        document.getElementById("fixedModal").classList.remove("hidden");
+    }
+
+    function closeFixedModal() { document.getElementById("fixedModal").classList.add("hidden"); }
+    function formatEuro(val) { return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(val); }
+    function formatDate(dStr) { if (!dStr) return "-"; const [y, m, d] = dStr.split("-"); return `${d}/${m}`; }
+</script>
 </body>
 </html>
