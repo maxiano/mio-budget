@@ -302,6 +302,23 @@
         let expensesData = {};
         let incomesData = {};
         let currentMonth = "Agosto_Prev";
+         document.addEventListener("DOMContentLoaded", () => {
+            const today = new Date();
+            document.getElementById("expenseDate").valueAsDate = today;
+            document.getElementById("incomeDate").valueAsDate = today;
+            lucide.createIcons();
+
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    currentUser = user;
+                    document.getElementById("authScreen").classList.add("hidden");
+                    listenToDatabase();
+                } else {
+                    currentUser = null;
+                    document.getElementById("authScreen").classList.remove("hidden");
+                }
+            });
+        });
 
         const CATEGORY_BUDGETS = { "Carburante": 200.00, "Casa & Manutenzione": 400.00 };
         const baseMonthlyFixed = [
@@ -335,23 +352,7 @@
             "Giugno": { income: 2500, tag: "Expleo + Spes" }, "Luglio": { income: 1800, tag: "Expleo" }, "Agosto": { income: 1800, tag: "Expleo" }
         };
 
-        document.addEventListener("DOMContentLoaded", () => {
-            const today = new Date();
-            document.getElementById("expenseDate").valueAsDate = today;
-            document.getElementById("incomeDate").valueAsDate = today;
-            lucide.createIcons();
-
-            auth.onAuthStateChanged(user => {
-                if (user) {
-                    currentUser = user;
-                    document.getElementById("authScreen").classList.add("hidden");
-                    listenToDatabase();
-                } else {
-                    currentUser = null;
-                    document.getElementById("authScreen").classList.remove("hidden");
-                }
-            });
-        });
+       
 
         async function handleAuth(e) {
             e.preventDefault();
