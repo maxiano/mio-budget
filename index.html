@@ -87,6 +87,21 @@
 
     <!-- Main Container -->
     <main class="max-w-6xl mx-auto px-4 py-6">
+        
+        <!-- Banner Conto Generale -->
+        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 rounded-2xl shadow-lg border border-indigo-900/50 mb-6 flex justify-between items-center flex-wrap gap-4">
+            <div>
+                <span class="text-[11px] uppercase tracking-wider font-semibold text-indigo-300 block mb-0.5">Conto Generale / Patrimoniale</span>
+                <div id="displayTotalAccount" class="text-2xl md:text-3xl font-extrabold text-white">5.705,10 €</div>
+                <p class="text-[11px] text-slate-400 mt-1">
+                    Base iniziale: <span class="text-indigo-200 font-semibold">5.705,10 €</span> (Agosto 2026) • Saldo cumulato fino a <span id="accountCurrentMonthLabel" class="text-indigo-200 font-semibold">---</span>
+                </p>
+            </div>
+            <div class="bg-indigo-600/20 p-3 rounded-xl border border-indigo-500/30 flex items-center gap-3">
+                <i data-lucide="landmark" class="w-8 h-8 text-indigo-400"></i>
+            </div>
+        </div>
+
         <!-- Dashboard Cards -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
@@ -307,28 +322,53 @@
         alert("Errore nel caricamento delle librerie Firebase. Controlla la connessione internet.");
     }
 
+    // Costanti
+    const INITIAL_ACCOUNT_BALANCE = 5705.10;
+    const FIXED_INPS_INCOME = 101.90;
+
+    // Ordine cronologico globale dei mesi per il calcolo del conto accumulato
+    const CHRONOLOGICAL_MONTHS = [
+        { key: "Agosto_Prev", year: "2026", label: "Agosto 2026" },
+        { key: "Settembre", year: "2026", label: "Settembre 2026" },
+        { key: "Ottobre", year: "2026", label: "Ottobre 2026" },
+        { key: "Novembre", year: "2026", label: "Novembre 2026" },
+        { key: "Dicembre", year: "2026", label: "Dicembre 2026" },
+        { key: "Gennaio", year: "2027", label: "Gennaio 2027" },
+        { key: "Febbraio", year: "2027", label: "Febbraio 2027" },
+        { key: "Marzo", year: "2027", label: "Marzo 2027" },
+        { key: "Aprile", year: "2027", label: "Aprile 2027" },
+        { key: "Maggio", year: "2027", label: "Maggio 2027" },
+        { key: "Giugno", year: "2027", label: "Giugno 2027" },
+        { key: "Luglio", year: "2027", label: "Luglio 2027" },
+        { key: "Agosto", year: "2027", label: "Agosto 2027" },
+        { key: "Settembre_27", year: "2027", label: "Settembre 2027" },
+        { key: "Ottobre_27", year: "2027", label: "Ottobre 2027" },
+        { key: "Novembre_27", year: "2027", label: "Novembre 2027" },
+        { key: "Dicembre_27", year: "2027", label: "Dicembre 2027" }
+    ];
+
     // 3. Mappatura Anni e Mesi
     const YEAR_MONTHS = {
         "2026": [
-            { key: "Agosto_Prev", label: "Agosto (Prev)", baseIncome: 1800, tag: "Expleo" },
-            { key: "Settembre", label: "Settembre", baseIncome: 1800, tag: "Expleo" },
-            { key: "Ottobre", label: "Ottobre", baseIncome: 2500, tag: "Expleo + Spes" },
-            { key: "Novembre", label: "Novembre", baseIncome: 2500, tag: "Expleo + Spes" },
-            { key: "Dicembre", label: "Dicembre", baseIncome: 2500, tag: "Expleo + Spes" }
+            { key: "Agosto_Prev", label: "Agosto (Prev)", baseIncome: 1800 + FIXED_INPS_INCOME, tag: "Expleo + INPS" },
+            { key: "Settembre", label: "Settembre", baseIncome: 1800 + FIXED_INPS_INCOME, tag: "Expleo + INPS" },
+            { key: "Ottobre", label: "Ottobre", baseIncome: 2500 + FIXED_INPS_INCOME, tag: "Expleo + Spes + INPS" },
+            { key: "Novembre", label: "Novembre", baseIncome: 2500 + FIXED_INPS_INCOME, tag: "Expleo + Spes + INPS" },
+            { key: "Dicembre", label: "Dicembre", baseIncome: 2500 + FIXED_INPS_INCOME, tag: "Expleo + Spes + INPS" }
         ],
         "2027": [
-            { key: "Gennaio", label: "Gennaio", baseIncome: 2500, tag: "Expleo + Spes" },
-            { key: "Febbraio", label: "Febbraio", baseIncome: 2500, tag: "Expleo + Spes" },
-            { key: "Marzo", label: "Marzo", baseIncome: 2500, tag: "Expleo + Spes" },
-            { key: "Aprile", label: "Aprile", baseIncome: 2500, tag: "Expleo + Spes" },
-            { key: "Maggio", label: "Maggio", baseIncome: 2500, tag: "Expleo + Spes" },
-            { key: "Giugno", label: "Giugno", baseIncome: 2500, tag: "Expleo + Spes" },
-            { key: "Luglio", label: "Luglio", baseIncome: 1800, tag: "Expleo" },
-            { key: "Agosto", label: "Agosto", baseIncome: 1800, tag: "Expleo" },
-            { key: "Settembre_27", label: "Settembre", baseIncome: 1800, tag: "Expleo" },
-            { key: "Ottobre_27", label: "Ottobre", baseIncome: 2500, tag: "Expleo + Spes" },
-            { key: "Novembre_27", label: "Novembre", baseIncome: 2500, tag: "Expleo + Spes" },
-            { key: "Dicembre_27", label: "Dicembre", baseIncome: 2500, tag: "Expleo + Spes" }
+            { key: "Gennaio", label: "Gennaio", baseIncome: 2500 + FIXED_INPS_INCOME, tag: "Expleo + Spes + INPS" },
+            { key: "Febbraio", label: "Febbraio", baseIncome: 2500 + FIXED_INPS_INCOME, tag: "Expleo + Spes + INPS" },
+            { key: "Marzo", label: "Marzo", baseIncome: 2500 + FIXED_INPS_INCOME, tag: "Expleo + Spes + INPS" },
+            { key: "Aprile", label: "Aprile", baseIncome: 2500 + FIXED_INPS_INCOME, tag: "Expleo + Spes + INPS" },
+            { key: "Maggio", label: "Maggio", baseIncome: 2500 + FIXED_INPS_INCOME, tag: "Expleo + Spes + INPS" },
+            { key: "Giugno", label: "Giugno", baseIncome: 2500 + FIXED_INPS_INCOME, tag: "Expleo + Spes + INPS" },
+            { key: "Luglio", label: "Luglio", baseIncome: 1800 + FIXED_INPS_INCOME, tag: "Expleo + INPS" },
+            { key: "Agosto", label: "Agosto", baseIncome: 1800 + FIXED_INPS_INCOME, tag: "Expleo + INPS" },
+            { key: "Settembre_27", label: "Settembre", baseIncome: 1800 + FIXED_INPS_INCOME, tag: "Expleo + INPS" },
+            { key: "Ottobre_27", label: "Ottobre", baseIncome: 2500 + FIXED_INPS_INCOME, tag: "Expleo + Spes + INPS" },
+            { key: "Novembre_27", label: "Novembre", baseIncome: 2500 + FIXED_INPS_INCOME, tag: "Expleo + Spes + INPS" },
+            { key: "Dicembre_27", label: "Dicembre", baseIncome: 2500 + FIXED_INPS_INCOME, tag: "Expleo + Spes + INPS" }
         ]
     };
 
@@ -516,6 +556,39 @@
         return allMonths.find(m => m.key === currentMonth) || { baseIncome: 0, tag: "Base" };
     }
 
+    // Calcola il margine netto di un singolo mese specificato da mKey e mYear
+    function getMonthNetMargin(mKey, mYear) {
+        const yearMonths = YEAR_MONTHS[mYear] || [];
+        const monthConf = yearMonths.find(m => m.key === mKey) || { baseIncome: 0 };
+
+        const currentExpenses = Object.values(expensesData[mKey] || {});
+        const currentIncomes = Object.values(incomesData[mKey] || {});
+
+        const extraIncomeTotal = currentIncomes.reduce((sum, item) => sum + item.amount, 0);
+        const totalIncome = monthConf.baseIncome + extraIncomeTotal;
+        const totalFixedMonth = getMonthFixedExpenses(mKey).reduce((sum, item) => sum + item.amount, 0);
+        const totalVariable = currentExpenses.reduce((sum, item) => sum + item.amount, 0);
+
+        return totalIncome - (totalFixedMonth + totalVariable);
+    }
+
+    // Calcola il saldo del Conto Generale fino al mese corrente selezionato
+    function calculateCumulativeAccountBalance() {
+        let balance = INITIAL_ACCOUNT_BALANCE;
+        const currentIndex = CHRONOLOGICAL_MONTHS.findIndex(m => m.key === currentMonth && m.year === currentYear);
+
+        const targetIndex = currentIndex !== -1 ? currentIndex : 0;
+
+        for (let i = 0; i <= targetIndex; i++) {
+            const item = CHRONOLOGICAL_MONTHS[i];
+            const margin = getMonthNetMargin(item.key, item.year);
+            balance += margin;
+        }
+
+        const currentLabel = CHRONOLOGICAL_MONTHS[targetIndex] ? CHRONOLOGICAL_MONTHS[targetIndex].label : "";
+        return { balance, currentLabel };
+    }
+
     function updateView() {
         const monthConfig = getCurrentMonthConfig();
         const currentExpenses = Object.values(expensesData[currentMonth] || {});
@@ -526,6 +599,11 @@
         const totalFixedMonth = getMonthFixedExpenses(currentMonth).reduce((sum, item) => sum + item.amount, 0);
         const totalVariable = currentExpenses.reduce((sum, item) => sum + item.amount, 0);
         const remaining = totalIncome - (totalFixedMonth + totalVariable);
+
+        // Aggiornamento Conto Generale
+        const accountInfo = calculateCumulativeAccountBalance();
+        document.getElementById("displayTotalAccount").innerText = formatEuro(accountInfo.balance);
+        document.getElementById("accountCurrentMonthLabel").innerText = accountInfo.currentLabel;
 
         document.getElementById("displayIncome").innerText = formatEuro(totalIncome);
         document.getElementById("incomeTag").innerText = extraIncomeTotal > 0 ? `${monthConfig.tag} (+${formatEuro(extraIncomeTotal)})` : monthConfig.tag;
