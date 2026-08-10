@@ -16,10 +16,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
 
-   <!-- Firebase SDK v8 -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <!-- Firebase SDK v8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; user-select: none; }
     </style>
@@ -52,7 +52,7 @@
 
     <!-- App Header -->
     <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-40">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center flex-wrap gap-3">
             <div class="flex items-center space-x-3">
                 <div class="bg-blue-600 p-2 rounded-xl shadow-md">
                     <i data-lucide="wallet" class="w-6 h-6 text-white"></i>
@@ -65,22 +65,17 @@
                 </div>
             </div>
             
+            <!-- Selezione Anno e Mese -->
             <div class="flex items-center space-x-2">
                 <div class="bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-700">
+                    <select id="yearSelect" onchange="changeYear()" class="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer">
+                        <option value="2026" class="bg-slate-800">2026</option>
+                        <option value="2027" class="bg-slate-800">2027</option>
+                    </select>
+                </div>
+                <div class="bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-700">
                     <select id="monthSelect" onchange="changeMonth()" class="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer">
-                        <option value="Agosto_Prev" class="bg-slate-800">Agosto (Prev) (1.800 €)</option>
-                        <option value="Settembre" class="bg-slate-800">Settembre (1.800 €)</option>
-                        <option value="Ottobre" class="bg-slate-800">Ottobre (2.500 €)</option>
-                        <option value="Novembre" class="bg-slate-800">Novembre (2.500 €)</option>
-                        <option value="Dicembre" class="bg-slate-800">Dicembre (2.500 €)</option>
-                        <option value="Gennaio" class="bg-slate-800">Gennaio (2.500 €)</option>
-                        <option value="Febbraio" class="bg-slate-800">Febbraio (2.500 €)</option>
-                        <option value="Marzo" class="bg-slate-800">Marzo (2.500 €)</option>
-                        <option value="Aprile" class="bg-slate-800">Aprile (2.500 €)</option>
-                        <option value="Maggio" class="bg-slate-800">Maggio (2.500 €)</option>
-                        <option value="Giugno" class="bg-slate-800">Giugno (2.500 €)</option>
-                        <option value="Luglio" class="bg-slate-800">Luglio (1.800 €)</option>
-                        <option value="Agosto" class="bg-slate-800">Agosto (1.800 €)</option>
+                        <!-- Popolato dinamicamente da JS -->
                     </select>
                 </div>
                 <button onclick="logout()" class="p-1.5 text-slate-400 hover:text-white bg-slate-800 rounded-lg border border-slate-700" title="Esci">
@@ -290,7 +285,7 @@
     </div>
 
     <script>
-    // 1. Configurazione Firebase (Aggiungi le tue chiavi complete)
+    // 1. Configurazione Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyDFQbKY8HA83xRlFk_OMNIFF_BAQMuP8HI",
       authDomain: "gestione-spese-d905a.firebaseapp.com",
@@ -312,10 +307,36 @@
         alert("Errore nel caricamento delle librerie Firebase. Controlla la connessione internet.");
     }
 
-    // 3. Stato dell'Applicazione
+    // 3. Mappatura Anni e Mesi
+    const YEAR_MONTHS = {
+        "2026": [
+            { key: "Agosto_Prev", label: "Agosto (Prev)", baseIncome: 1800, tag: "Expleo" },
+            { key: "Settembre", label: "Settembre", baseIncome: 1800, tag: "Expleo" },
+            { key: "Ottobre", label: "Ottobre", baseIncome: 2500, tag: "Expleo + Spes" },
+            { key: "Novembre", label: "Novembre", baseIncome: 2500, tag: "Expleo + Spes" },
+            { key: "Dicembre", label: "Dicembre", baseIncome: 2500, tag: "Expleo + Spes" }
+        ],
+        "2027": [
+            { key: "Gennaio", label: "Gennaio", baseIncome: 2500, tag: "Expleo + Spes" },
+            { key: "Febbraio", label: "Febbraio", baseIncome: 2500, tag: "Expleo + Spes" },
+            { key: "Marzo", label: "Marzo", baseIncome: 2500, tag: "Expleo + Spes" },
+            { key: "Aprile", label: "Aprile", baseIncome: 2500, tag: "Expleo + Spes" },
+            { key: "Maggio", label: "Maggio", baseIncome: 2500, tag: "Expleo + Spes" },
+            { key: "Giugno", label: "Giugno", baseIncome: 2500, tag: "Expleo + Spes" },
+            { key: "Luglio", label: "Luglio", baseIncome: 1800, tag: "Expleo" },
+            { key: "Agosto", label: "Agosto", baseIncome: 1800, tag: "Expleo" },
+            { key: "Settembre_27", label: "Settembre", baseIncome: 1800, tag: "Expleo" },
+            { key: "Ottobre_27", label: "Ottobre", baseIncome: 2500, tag: "Expleo + Spes" },
+            { key: "Novembre_27", label: "Novembre", baseIncome: 2500, tag: "Expleo + Spes" },
+            { key: "Dicembre_27", label: "Dicembre", baseIncome: 2500, tag: "Expleo + Spes" }
+        ]
+    };
+
+    // 4. Stato dell'Applicazione
     let currentUser = null;
     let expensesData = {};
     let incomesData = {};
+    let currentYear = "2026";
     let currentMonth = "Agosto_Prev";
 
     const CATEGORY_BUDGETS = { "Carburante": 200.00, "Casa & Manutenzione": 400.00 };
@@ -327,35 +348,82 @@
         { cat: "Abbonamenti", name: "Prime Video", amount: 8.99, desc: "Mensile" },
         { cat: "Abbonamenti", name: "Netflix", amount: 6.99, desc: "Mensile" }
     ];
+
     const periodicExpenses = {
-        "Agosto_Prev": [], "Settembre": [],
-        "Ottobre": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Ottobre" }],
-        "Novembre": [{ cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }],
-        "Dicembre": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Dicembre" }, { cat: "Trasporti", name: "Assicurazione Auto", amount: 350.00, desc: "Scadenza Annuale" }],
-        "Gennaio": [{ cat: "Trasporti", name: "Bollo Auto", amount: 180.00, desc: "Scadenza Annuale" }],
-        "Febbraio": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Febbraio" }],
-        "Marzo": [{ cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }],
-        "Aprile": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Aprile" }],
-        "Maggio": [{ cat: "Tempo Libero", name: "Rimessaggio Roulotte", amount: 500.00, desc: "Scadenza Annuale" }],
-        "Giugno": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Giugno" }, { cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }],
-        "Luglio": [],
-        "Agosto": [{ cat: "Utenze", name: "Luce (Bimestrale)", amount: 100.00, desc: "Scadenza Agosto" }, { cat: "Extra", name: "Campeggio Estivo", amount: 1800.00, desc: "Quota Straordinaria" }]
-    };
-    const monthlyIncomes = {
-        "Agosto_Prev": { income: 1800, tag: "Expleo" }, "Settembre": { income: 1800, tag: "Expleo" },
-        "Ottobre": { income: 2500, tag: "Expleo + Spes" }, "Novembre": { income: 2500, tag: "Expleo + Spes" },
-        "Dicembre": { income: 2500, tag: "Expleo + Spes" }, "Gennaio": { income: 2500, tag: "Expleo + Spes" },
-        "Febbraio": { income: 2500, tag: "Expleo + Spes" }, "Marzo": { income: 2500, tag: "Expleo + Spes" },
-        "Aprile": { income: 2500, tag: "Expleo + Spes" }, "Maggio": { income: 2500, tag: "Expleo + Spes" },
-        "Giugno": { income: 2500, tag: "Expleo + Spes" }, "Luglio": { income: 1800, tag: "Expleo" }, "Agosto": { income: 1800, tag: "Expleo" }
+        // --- 2026 ---
+        "Agosto_Prev": [
+            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Agosto" }
+        ],
+        "Settembre": [
+            { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Settembre" }
+        ],
+        "Ottobre": [
+            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Ottobre" }
+        ],
+        "Novembre": [
+            { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Novembre" },
+            { cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }
+        ],
+        "Dicembre": [
+            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Dicembre" },
+            { cat: "Trasporti", name: "Assicurazione Auto", amount: 350.00, desc: "Scadenza Annuale" }
+        ],
+        // --- 2027 ---
+        "Gennaio": [
+            { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Gennaio" },
+            { cat: "Trasporti", name: "Bollo Auto", amount: 180.00, desc: "Scadenza Annuale" }
+        ],
+        "Febbraio": [
+            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Febbraio" }
+        ],
+        "Marzo": [
+            { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Marzo" },
+            { cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }
+        ],
+        "Aprile": [
+            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Aprile" }
+        ],
+        "Maggio": [
+            { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Maggio" },
+            { cat: "Trasporti", name: "Bollo Auto", amount: 170.00, desc: "Scadenza Annuale" },
+            { cat: "Tempo Libero", name: "Rimessaggio Roulotte", amount: 500.00, desc: "Scadenza Annuale" }
+        ],
+        "Giugno": [
+            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Giugno" },
+            { cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }
+        ],
+        "Luglio": [
+            { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Luglio" },
+            { cat: "Trasporti", name: "Assicurazione Auto", amount: 360.00, desc: "Scadenza Semestrale/Annuale" }
+        ],
+        "Agosto": [
+            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Agosto" },
+            { cat: "Extra", name: "Campeggio Estivo", amount: 1800.00, desc: "Quota Straordinaria" }
+        ],
+        "Settembre_27": [
+            { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Settembre" }
+        ],
+        "Ottobre_27": [
+            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Ottobre" }
+        ],
+        "Novembre_27": [
+            { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Novembre" },
+            { cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }
+        ],
+        "Dicembre_27": [
+            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Dicembre" },
+            { cat: "Trasporti", name: "Assicurazione Auto", amount: 350.00, desc: "Scadenza Annuale" }
+        ]
     };
 
-    // 4. Listener DOM
+    // 5. Listener DOM e Inizializzazione
     document.addEventListener("DOMContentLoaded", () => {
         const today = new Date();
         document.getElementById("expenseDate").valueAsDate = today;
         document.getElementById("incomeDate").valueAsDate = today;
         
+        populateMonthDropdown();
+
         if (typeof lucide !== "undefined") {
             lucide.createIcons();
         }
@@ -373,6 +441,34 @@
             });
         }
     });
+
+    function populateMonthDropdown() {
+        const monthSelect = document.getElementById("monthSelect");
+        monthSelect.innerHTML = "";
+        const months = YEAR_MONTHS[currentYear] || [];
+        
+        months.forEach(m => {
+            const opt = document.createElement("option");
+            opt.value = m.key;
+            opt.className = "bg-slate-800";
+            opt.innerText = `${m.label} (${m.baseIncome.toLocaleString('it-IT')} €)`;
+            monthSelect.appendChild(opt);
+        });
+
+        currentMonth = months[0].key;
+        monthSelect.value = currentMonth;
+    }
+
+    function changeYear() {
+        currentYear = document.getElementById("yearSelect").value;
+        populateMonthDropdown();
+        updateView();
+    }
+
+    function changeMonth() {
+        currentMonth = document.getElementById("monthSelect").value;
+        updateView();
+    }
 
     async function handleAuth(e) {
         e.preventDefault();
@@ -414,28 +510,28 @@
         });
     }
 
-    function changeMonth() {
-        currentMonth = document.getElementById("monthSelect").value;
-        updateView();
-    }
-
     function getMonthFixedExpenses(month) {
         return [...baseMonthlyFixed, ...(periodicExpenses[month] || [])];
     }
 
+    function getCurrentMonthConfig() {
+        const allMonths = [...YEAR_MONTHS["2026"], ...YEAR_MONTHS["2027"]];
+        return allMonths.find(m => m.key === currentMonth) || { baseIncome: 0, tag: "Base" };
+    }
+
     function updateView() {
-        const incomeInfo = monthlyIncomes[currentMonth] || { income: 0, tag: "Base" };
+        const monthConfig = getCurrentMonthConfig();
         const currentExpenses = Object.values(expensesData[currentMonth] || {});
         const currentIncomes = Object.values(incomesData[currentMonth] || {});
 
         const extraIncomeTotal = currentIncomes.reduce((sum, item) => sum + item.amount, 0);
-        const totalIncome = incomeInfo.income + extraIncomeTotal;
+        const totalIncome = monthConfig.baseIncome + extraIncomeTotal;
         const totalFixedMonth = getMonthFixedExpenses(currentMonth).reduce((sum, item) => sum + item.amount, 0);
         const totalVariable = currentExpenses.reduce((sum, item) => sum + item.amount, 0);
         const remaining = totalIncome - (totalFixedMonth + totalVariable);
 
         document.getElementById("displayIncome").innerText = formatEuro(totalIncome);
-        document.getElementById("incomeTag").innerText = extraIncomeTotal > 0 ? `${incomeInfo.tag} (+${formatEuro(extraIncomeTotal)})` : incomeInfo.tag;
+        document.getElementById("incomeTag").innerText = extraIncomeTotal > 0 ? `${monthConfig.tag} (+${formatEuro(extraIncomeTotal)})` : monthConfig.tag;
         document.getElementById("displayFixed").innerText = formatEuro(totalFixedMonth);
         document.getElementById("displayVariable").innerText = formatEuro(totalVariable);
 
@@ -533,7 +629,8 @@
     }
 
     function openFixedModal() {
-        document.getElementById("modalMonthName").innerText = currentMonth;
+        const monthConfig = getCurrentMonthConfig();
+        document.getElementById("modalMonthName").innerText = `${monthConfig.label} ${currentYear}`;
         const modalBody = document.getElementById("modalFixedTableBody");
         modalBody.innerHTML = "";
         const list = getMonthFixedExpenses(currentMonth);
