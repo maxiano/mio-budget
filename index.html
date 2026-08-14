@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Budget App">
 
-    <link rel="manifest" href='data:application/manifest+json,{"name":"Gestore Budget","short_name":"BudgetApp","start_url":".","display":"standalone","background_color":"#0f172a","theme_color":"#0f172a","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/2543/2543132.png","sizes":"512x512","type":"image/png"}]}'>
+  <link rel="manifest" href="manifest.json">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
@@ -23,6 +23,15 @@
     <style>
         body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; user-select: none; }
     </style>
+    <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('Service Worker registrato con successo!', reg))
+        .catch(err => console.error('Errore nella registrazione del Service Worker:', err));
+    });
+  }
+</script>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800 pb-12">
 
