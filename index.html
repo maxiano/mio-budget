@@ -609,30 +609,32 @@
     }
 
     // Calcola il saldo del Conto Generale considerando la base iniziale di Agosto già al netto e sommando i margini/INPS
- function calculateCumulativeAccountBalance() {
+// Assicurati che la costante sia impostata a 5884
+const INITIAL_ACCOUNT_BALANCE = 5884.00;
+
+function calculateCumulativeAccountBalance() {
     const currentIndex = CHRONOLOGICAL_MONTHS.findIndex(m => m.key === currentMonth && m.year === currentYear);
     const targetIndex = currentIndex !== -1 ? currentIndex : 0;
 
-    // Base iniziale aggiornata a 5.884,00 €
+    // Partiamo dalla base di 5.884,00 €
     let balance = INITIAL_ACCOUNT_BALANCE;
 
-    // Calcolo del saldo cumulato da Agosto 2026 fino al mese selezionato
     for (let i = 0; i <= targetIndex; i++) {
         const item = CHRONOLOGICAL_MONTHS[i];
 
         if (i === 0) {
-            // Per Agosto 2026 (base di partenza già al netto delle uscite/entrate fisse),
-            // sommiamo le entrate extra e sottraiamo le uscite variabili inserite manualmente
+            // Per il mese iniziale (Agosto 2026):
+            // Consideriamo solo l'impatto delle entrate extra e delle uscite variabili registrate
             const currentExpenses = Object.values(expensesData[item.key] || {});
             const currentIncomes = Object.values(incomesData[item.key] || {});
 
             const extraIncome = currentIncomes.reduce((sum, entry) => sum + entry.amount, 0);
             const variableExpense = currentExpenses.reduce((sum, entry) => sum + entry.amount, 0);
 
+            // Aggiunge le entrate extra e sottrae le uscite variabili
             balance += (extraIncome - variableExpense);
         } else {
-            // Per i mesi da Settembre in poi, sommiamo il margine netto mensile completo
-            // (Entrate Totali - Uscite Fisse - Uscite Variabili)
+            // Per i mesi successivi sommiamo il margine netto mensile completo
             const margin = getMonthNetMargin(item.key, item.year);
             balance += margin;
         }
