@@ -18,25 +18,37 @@ const CDN_ASSETS = [
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js'
 ];
 
-// Installazione: gestione separata per evitare che eventuali errori CORS blocchino il Service Worker
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      // 1. Salva file locali
-      await cache.addAll(LOCAL_ASSETS);
+// Intercettazione richieste di rete
+self.addEventListener('fetch', (e) => {
+  const url = new URL(e.request.url);
 
-      // 2. Salva risorse CDN con mode 'no-cors' per evitare blocchi CORS
-      const cdnPromises = CDN_ASSETS.map(async (url) => {
-        try {
-          const response = await fetch(url, { mode: 'no-cors' });
-          await cache.put(url, response);
-        } catch (err) {
-          console.warn(`Impossibile archiviare la CDN in cache: ${url}`, err);
+  // Esclude le chiamate dirette al database/autenticazione Firebase
+  if (
+    url.hostname.includes('firebaseio.com') || 
+    url.hostname.includes('identitytoolkit') || 
+    url.hostname.includes('firestore.googleapis.com')
+  ) {
+    return;
+  }
+
+  if (e.request.method !== 'GET') return;
+
+  e.respondWith(
+    caches.match(e.request).then((cachedResponse) => {
+      const fetchPromise = fetch(e.request).then((networkResponse) => {
+        // Verifica risposta valida (inclusi gli asset no-cors di tipo 'opaque')
+        if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
+          // CLONA LA RISPOSTA PRIMA DI USARLA
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(e.request, responseToCache);
+          });
         }
-      });
+        return networkResponse;
+      }).catch(() => cachedResponse);
 
-      return Promise.all(cdnPromises);
-    }).then(() => self.skipWaiting())
+      return cachedResponse || fetchPromise;
+    })
   );
 });
 
