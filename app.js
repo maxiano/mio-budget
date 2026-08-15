@@ -105,6 +105,33 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
+function handleAuth(event) {
+    if (event) event.preventDefault();
+
+    if (!auth) {
+        alert("Servizio di autenticazione non disponibile. Verificare il caricamento di Firebase.");
+        return;
+    }
+
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+
+    if (!emailInput || !passwordInput) return;
+
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
+    auth.signInWithEmailAndPassword(email, password)
+        .then(() => {
+            emailInput.value = "";
+            passwordInput.value = "";
+        })
+        .catch(error => {
+            console.error("Errore di autenticazione:", error);
+            alert("Errore di accesso: " + error.message);
+        });
+}
+
 function setupYearAndMonthSelectors() {
     const yearSelect = document.getElementById("yearSelect");
     const monthSelect = document.getElementById("monthSelect");
@@ -154,13 +181,10 @@ function loadFirebaseData() {
     const user = auth ? auth.currentUser : null;
     if (!user || !db) return;
 
-    // Rimuove eventuali ascoltatori precedenti
     if (budgetRef) budgetRef.off();
 
-    // Riferimento al nodo dell'utente
     budgetRef = db.ref(`users/${user.uid}/budgetData`);
 
-    // Ascolto in tempo reale dei dati
     budgetRef.on("value", snapshot => {
         monthlyData = snapshot.val() || {};
         renderAll();
@@ -175,7 +199,6 @@ function saveDataToFirebase(monthKey) {
 
     const dataToSave = monthlyData[monthKey] || { incomes: [], fixedOverrides: [], variableExpenses: [] };
 
-    // Salvataggio nel nodo specifico del mese
     db.ref(`users/${user.uid}/budgetData/${monthKey}`)
         .set(dataToSave)
         .catch(error => {
