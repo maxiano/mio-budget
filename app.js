@@ -44,15 +44,14 @@ const periodicExpenses = {
 let currentYear = 2026;
 let currentMonthKey = "2026-08";
 let monthlyData = {}; 
-let unsubscribeFirebase = null;
+let budgetRef = null; // Riferimento al percorso Realtime Database
 
 /* ==========================================================================
-   INIZIALIZZAZIONE FIREBASE CON PERSISTENZA OFFLINE
+   INIZIALIZZAZIONE FIREBASE REALTIME DATABASE
    ========================================================================== */
 let auth = null;
 let db = null;
 
-// Sostituisci questi valori con quelli presi dalla Console di Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDFQbKY8HA83xRlFk_OMNIFF_BAQMuP8HI",
   authDomain: "gestione-spese-d905a.firebaseapp.com",
@@ -69,16 +68,7 @@ if (typeof firebase !== 'undefined') {
         firebase.initializeApp(firebaseConfig);
     }
     auth = firebase.auth();
-    db = firebase.firestore();
-
-    // Attiva la persistenza offline di Firestore per supporto PWA
-    db.enablePersistence({ synchronizeTabs: true }).catch(err => {
-        if (err.code === 'failed-precondition') {
-            console.warn('Persistenza fallita: troppe schede aperte.');
-        } else if (err.code === 'unimplemented') {
-            console.warn('Il browser corrente non supporta la persistenza offline.');
-        }
-    });
+    db = firebase.database(); // Inizializzazione Realtime Database
 }
 
 /* ==========================================================================
@@ -99,7 +89,10 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 if (loginSection) loginSection.style.display = "block";
                 if (appContent) appContent.style.display = "none";
-                if (unsubscribeFirebase) unsubscribeFirebase();
+                if (budgetRef) {
+                    budgetRef.off(); // Disattiva l'ascolto al logout
+                    budgetRef = null;
+                }
             }
         });
     }
@@ -155,26 +148,25 @@ function updateMonthDropdownOptions() {
 }
 
 /* ==========================================================================
-   SINCRONIZZAZIONE FIREBASE
+   SINCRONIZZAZIONE FIREBASE REALTIME DATABASE
    ========================================================================== */
 function loadFirebaseData() {
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user || !db) return;
 
-    if (unsubscribeFirebase) unsubscribeFirebase();
+    // Rimuove eventuali ascoltatori precedenti
+    if (budgetRef) budgetRef.off();
 
-    unsubscribeFirebase = db.collection("users")
-        .doc(user.uid)
-        .collection("budgetData")
-        .onSnapshot(snapshot => {
-            monthlyData = {};
-            snapshot.forEach(doc => {
-                monthlyData[doc.id] = doc.data();
-            });
-            renderAll();
-        }, error => {
-            console.error("Errore durante il recupero dati:", error);
-        });
+    // Riferimento al nodo dell'utente
+    budgetRef = db.ref(`users/${user.uid}/budgetData`);
+
+    // Ascolto in tempo reale dei dati
+    budgetRef.on("value", snapshot => {
+        monthlyData = snapshot.val() || {};
+        renderAll();
+    }, error => {
+        console.error("Errore durante il recupero dati da Realtime Database:", error);
+    });
 }
 
 function saveDataToFirebase(monthKey) {
@@ -183,13 +175,11 @@ function saveDataToFirebase(monthKey) {
 
     const dataToSave = monthlyData[monthKey] || { incomes: [], fixedOverrides: [], variableExpenses: [] };
 
-    db.collection("users")
-        .doc(user.uid)
-        .collection("budgetData")
-        .doc(monthKey)
-        .set(dataToSave, { merge: true })
+    // Salvataggio nel nodo specifico del mese
+    db.ref(`users/${user.uid}/budgetData/${monthKey}`)
+        .set(dataToSave)
         .catch(error => {
-            console.error("Errore nel salvataggio su Firebase:", error);
+            console.error("Errore nel salvataggio su Realtime Database:", error);
         });
 }
 
