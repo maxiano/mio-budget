@@ -44,7 +44,7 @@ const periodicExpenses = {
 let currentYear = 2026;
 let currentMonthKey = "2026-08";
 let monthlyData = {}; 
-let budgetRef = null; // Riferimento al percorso Realtime Database
+let budgetRef = null;
 
 /* ==========================================================================
    INIZIALIZZAZIONE FIREBASE REALTIME DATABASE
@@ -68,7 +68,7 @@ if (typeof firebase !== 'undefined') {
         firebase.initializeApp(firebaseConfig);
     }
     auth = firebase.auth();
-    db = firebase.database(); // Inizializzazione Realtime Database
+    db = firebase.database();
 }
 
 /* ==========================================================================
@@ -79,18 +79,22 @@ document.addEventListener("DOMContentLoaded", () => {
     
     if (auth) {
         auth.onAuthStateChanged(user => {
-            const loginSection = document.getElementById("loginSection");
-            const appContent = document.getElementById("appContent");
+            const loginSection = document.getElementById("loginSection") || document.getElementById("authScreen");
+            const appContent = document.getElementById("appContent") || document.getElementById("mainApp");
 
             if (user) {
+                if (loginSection) loginSection.classList.add("hidden");
                 if (loginSection) loginSection.style.display = "none";
+                if (appContent) appContent.classList.remove("hidden");
                 if (appContent) appContent.style.display = "block";
                 loadFirebaseData();
             } else {
+                if (loginSection) loginSection.classList.remove("hidden");
                 if (loginSection) loginSection.style.display = "block";
+                if (appContent) appContent.classList.add("hidden");
                 if (appContent) appContent.style.display = "none";
                 if (budgetRef) {
-                    budgetRef.off(); // Disattiva l'ascolto al logout
+                    budgetRef.off();
                     budgetRef = null;
                 }
             }
@@ -105,32 +109,54 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-function handleAuth(event) {
+// Esposizione nell'ambito globale per far funzionare l'evento inline onsubmit="handleAuth(event)"
+window.handleAuth = function(event) {
     if (event) event.preventDefault();
 
     if (!auth) {
-        alert("Servizio di autenticazione non disponibile. Verificare il caricamento di Firebase.");
+        alert("Servizio di autenticazione non disponibile. Verificare la connessione a Firebase.");
         return;
     }
 
-    const emailInput = document.getElementById("email");
-    const passwordInput = document.getElementById("password");
+    // Supporto sia per ID 'email'/'password' che 'authEmail'/'authPassword'
+    const emailInput = document.getElementById("email") || document.getElementById("authEmail");
+    const passwordInput = document.getElementById("password") || document.getElementById("authPassword");
+    const errorDiv = document.getElementById("authError");
 
-    if (!emailInput || !passwordInput) return;
+    if (!emailInput || !passwordInput) {
+        console.error("Campi input email o password non trovati nel DOM.");
+        return;
+    }
 
     const email = emailInput.value.trim();
     const password = passwordInput.value;
+
+    if (!email || !password) {
+        if (errorDiv) {
+            errorDiv.innerText = "Inserisci email e password.";
+            errorDiv.classList.remove("hidden");
+        } else {
+            alert("Inserisci email e password.");
+        }
+        return;
+    }
 
     auth.signInWithEmailAndPassword(email, password)
         .then(() => {
             emailInput.value = "";
             passwordInput.value = "";
+            if (errorDiv) errorDiv.classList.add("hidden");
         })
         .catch(error => {
             console.error("Errore di autenticazione:", error);
-            alert("Errore di accesso: " + error.message);
+            if (errorDiv) {
+                errorDiv.innerText = "Errore di accesso: " + error.message;
+                errorDiv.classList.remove("hidden");
+            } else {
+                alert("Errore di accesso: " + error.message);
+            }
         });
-}
+};
 
 function setupYearAndMonthSelectors() {
     const yearSelect = document.getElementById("yearSelect");
@@ -358,12 +384,12 @@ function renderTables() {
 /* ==========================================================================
    OPERAZIONI DATI & MODALI
    ========================================================================== */
-function openIncomeModal() {
+window.openIncomeModal = function() {
     const modal = document.getElementById("incomeModal");
     if (modal) modal.style.display = "flex";
-}
+};
 
-function closeIncomeModal() {
+window.closeIncomeModal = function() {
     const modal = document.getElementById("incomeModal");
     if (modal) modal.style.display = "none";
     const t = document.getElementById("incomeTitle");
@@ -372,9 +398,9 @@ function closeIncomeModal() {
     if (t) t.value = "";
     if (a) a.value = "";
     if (d) d.value = "";
-}
+};
 
-function saveIncome() {
+window.saveIncome = function() {
     const titleEl = document.getElementById("incomeTitle");
     const amountEl = document.getElementById("incomeAmount");
     const dateEl = document.getElementById("incomeDate");
@@ -407,17 +433,17 @@ function saveIncome() {
     saveDataToFirebase(currentMonthKey);
     closeIncomeModal();
     renderAll();
-}
+};
 
-function deleteIncome(id) {
+window.deleteIncome = function(id) {
     if (!monthlyData[currentMonthKey] || !Array.isArray(monthlyData[currentMonthKey].incomes)) return;
 
     monthlyData[currentMonthKey].incomes = monthlyData[currentMonthKey].incomes.filter(i => i.id !== id);
     saveDataToFirebase(currentMonthKey);
     renderAll();
-}
+};
 
-function openEditFixedModal(title, currentAmount) {
+window.openEditFixedModal = function(title, currentAmount) {
     const elTitle = document.getElementById("fixedTitle");
     const elAmount = document.getElementById("fixedAmount");
     if (elTitle) elTitle.value = title;
@@ -425,14 +451,14 @@ function openEditFixedModal(title, currentAmount) {
 
     const modal = document.getElementById("fixedModal");
     if (modal) modal.style.display = "flex";
-}
+};
 
-function closeFixedModal() {
+window.closeFixedModal = function() {
     const modal = document.getElementById("fixedModal");
     if (modal) modal.style.display = "none";
-}
+};
 
-function saveFixedOverride() {
+window.saveFixedOverride = function() {
     const titleEl = document.getElementById("fixedTitle");
     const amountEl = document.getElementById("fixedAmount");
 
@@ -463,11 +489,11 @@ function saveFixedOverride() {
     saveDataToFirebase(currentMonthKey);
     closeFixedModal();
     renderAll();
-}
+};
 
-function logout() {
+window.logout = function() {
     if (auth) auth.signOut();
-}
+};
 
 /* ==========================================================================
    UTILITIES
