@@ -1,50 +1,102 @@
 /* ==========================================================================
-   CONFIGURAZIONE STATO APPLICAZIONE E VARIABILI GLOBALI
+   CONFIGURAZIONE & DATI INIZIALI
    ========================================================================== */
+const INITIAL_ACCOUNT_BALANCE = 5348.43;
 
-let currentYear = new Date().getFullYear();
-let currentMonth = new Date().getMonth() + 1; // 1 - 12
-let budgetRef = null;
+const YEAR_MONTHS = {
+    2026: [
+        { key: "2026-01", label: "Gennaio 2026", baseIncome: 1901.90 },
+        { key: "2026-02", label: "Febbraio 2026", baseIncome: 1901.90 },
+        { key: "2026-03", label: "Marzo 2026", baseIncome: 1901.90 },
+        { key: "2026-04", label: "Aprile 2026", baseIncome: 1901.90 },
+        { key: "2026-05", label: "Maggio 2026", baseIncome: 1901.90 },
+        { key: "2026-06", label: "Giugno 2026", baseIncome: 1901.90 },
+        { key: "2026-07", label: "Luglio 2026", baseIncome: 1901.90 },
+        { key: "2026-08", label: "Agosto 2026", baseIncome: 1901.90 },
+        { key: "2026-09", label: "Settembre 2026", baseIncome: 1901.90 },
+        { key: "2026-10", label: "Ottobre 2026", baseIncome: 1901.90 },
+        { key: "2026-11", label: "Novembre 2026", baseIncome: 1901.90 },
+        { key: "2026-12", label: "Dicembre 2026", baseIncome: 1901.90 }
+    ]
+};
 
-// Nomi dei mesi in italiano per la formattazione
-const monthNames = [
-    "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
-    "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
+const baseMonthlyFixed = [
+    { title: "Affitto", amount: 620 },
+    { title: "Mantenimento Valerio", amount: 350 },
+    { title: "Spesa Cibo", amount: 250 },
+    { title: "Prestito Compass", amount: 200 },
+    { title: "Prestito Agos", amount: 151 },
+    { title: "Luce e Gas (Accantonamento)", amount: 100 },
+    { title: "Infortuni Generali", amount: 68 },
+    { title: "TIM Fibra", amount: 30 },
+    { title: "Iliad Mobile", amount: 10 }
 ];
 
+const periodicExpenses = {
+    "2026-05": [{ title: "TARI (Tassa Rifiuti)", amount: 110 }],
+    "2026-09": [{ title: "Assicurazione Scooter", amount: 320 }],
+    "2026-11": [{ title: "TARI (Tassa Rifiuti)", amount: 110 }]
+};
+
 /* ==========================================================================
-   INIZIALIZZAZIONE AL CARICAMENTO DEL DOM
+   STATO DELL'APPLICAZIONE
    ========================================================================== */
+let currentYear = 2026;
+let currentMonthKey = "2026-08";
+let monthlyData = {}; 
+let budgetRef = null; // Riferimento al percorso Realtime Database
 
+/* ==========================================================================
+   INIZIALIZZAZIONE FIREBASE REALTIME DATABASE
+   ========================================================================== */
+let auth = null;
+let db = null;
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDFQbKY8HA83xRlFk_OMNIFF_BAQMuP8HI",
+  authDomain: "gestione-spese-d905a.firebaseapp.com",
+  databaseURL: "https://gestione-spese-d905a-default-rtdb.firebaseio.com",
+  projectId: "gestione-spese-d905a",
+  storageBucket: "gestione-spese-d905a.firebasestorage.app",
+  messagingSenderId: "518124443080",
+  appId: "1:518124443080:web:676fce0a4e6ad6168d9cfd",
+  measurementId: "G-T6B3VVSZNQ"
+};
+
+if (typeof firebase !== 'undefined') {
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    auth = firebase.auth();
+    db = firebase.database(); // Inizializzazione Realtime Database
+}
+
+/* ==========================================================================
+   GESTORI EVENTI & LIFECYCLE
+   ========================================================================== */
 document.addEventListener("DOMContentLoaded", () => {
-    // Inizializza i selettori di anno e mese
     setupYearAndMonthSelectors();
-
-    // Ascolto dello stato di autenticazione Firebase
-    if (typeof auth !== "undefined" && auth) {
+    
+    if (auth) {
         auth.onAuthStateChanged(user => {
-            const authScreen = document.getElementById("authScreen");
+            const loginSection = document.getElementById("loginSection");
+            const appContent = document.getElementById("appContent");
 
             if (user) {
-                // Utente autenticato: nascondi la schermata di login
-                if (authScreen) authScreen.classList.add("hidden");
-                
-                // Carica i dati del mese selezionato
+                if (loginSection) loginSection.style.display = "none";
+                if (appContent) appContent.style.display = "block";
                 loadFirebaseData();
             } else {
-                // Utente non autenticato: mostra overlay di login
-                if (authScreen) authScreen.classList.remove("hidden");
-                
-                // Pulisci listener attivi
+                if (loginSection) loginSection.style.display = "block";
+                if (appContent) appContent.style.display = "none";
                 if (budgetRef) {
-                    budgetRef.off();
+                    budgetRef.off(); // Disattiva l'ascolto al logout
                     budgetRef = null;
                 }
             }
         });
     }
 
-    // Gestione chiusura modali con tasto ESC
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
             closeIncomeModal();
@@ -53,481 +105,359 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-/* ==========================================================================
-   SELETTORI E NAVIGAZIONE TEMPORALE (Anno / Mese)
-   ========================================================================== */
-
 function setupYearAndMonthSelectors() {
     const yearSelect = document.getElementById("yearSelect");
     const monthSelect = document.getElementById("monthSelect");
 
-    if (yearSelect) {
-        yearSelect.innerHTML = "";
-        const startYear = currentYear - 2;
-        const endYear = currentYear + 3;
+    if (!yearSelect || !monthSelect) return;
 
-        for (let y = startYear; y <= endYear; y++) {
-            const opt = document.createElement("option");
-            opt.value = y;
-            opt.textContent = y;
-            if (y === currentYear) opt.selected = true;
-            yearSelect.appendChild(opt);
+    yearSelect.value = currentYear;
+    updateMonthDropdownOptions();
+
+    yearSelect.addEventListener("change", (e) => {
+        currentYear = parseInt(e.target.value, 10);
+        updateMonthDropdownOptions();
+        const availableMonths = YEAR_MONTHS[currentYear] || [];
+        if (availableMonths.length > 0) {
+            currentMonthKey = availableMonths[0].key;
+            monthSelect.value = currentMonthKey;
         }
+        renderAll();
+    });
 
-        yearSelect.addEventListener("change", (e) => {
-            currentYear = parseInt(e.target.value, 10);
-            loadFirebaseData();
-        });
-    }
+    monthSelect.addEventListener("change", (e) => {
+        currentMonthKey = e.target.value;
+        renderAll();
+    });
+}
 
-    if (monthSelect) {
-        monthSelect.value = currentMonth;
-        monthSelect.addEventListener("change", (e) => {
-            currentMonth = parseInt(e.target.value, 10);
-            loadFirebaseData();
-        });
-    }
+function updateMonthDropdownOptions() {
+    const monthSelect = document.getElementById("monthSelect");
+    if (!monthSelect) return;
+
+    monthSelect.innerHTML = "";
+    const months = YEAR_MONTHS[currentYear] || [];
+    
+    months.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.key;
+        opt.textContent = m.label;
+        if (m.key === currentMonthKey) opt.selected = true;
+        monthSelect.appendChild(opt);
+    });
 }
 
 /* ==========================================================================
-   AUTENTICAZIONE FIREBASE
+   SINCRONIZZAZIONE FIREBASE REALTIME DATABASE
    ========================================================================== */
-
-function handleAuth(e) {
-    if (e) e.preventDefault();
-
-    const emailInput = document.getElementById("authEmail");
-    const passwordInput = document.getElementById("authPassword");
-    const errorElement = document.getElementById("authError");
-    const submitBtn = document.getElementById("authSubmitBtn");
-
-    if (!emailInput || !passwordInput) return;
-
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-
-    if (!email || !password) {
-        showAuthError("Inserisci sia l'email che la password.");
-        return;
-    }
-
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = "Autenticazione in corso...";
-    }
-    if (errorElement) errorElement.classList.add("hidden");
-
-    auth.signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-            console.log("Accesso eseguito:", userCredential.user.email);
-            resetAuthForm();
-        })
-        .catch((error) => {
-            if (error.code === 'auth/user-not-found') {
-                auth.createUserWithEmailAndPassword(email, password)
-                    .then((userCredential) => {
-                        console.log("Nuovo account creato:", userCredential.user.email);
-                        resetAuthForm();
-                    })
-                    .catch((createError) => handleAuthError(createError));
-            } else {
-                handleAuthError(error);
-            }
-        })
-        .finally(() => {
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.textContent = "Accedi / Registrati";
-            }
-        });
-}
-
-function handleAuthError(error) {
-    let message = "Errore durante l'accesso.";
-    switch (error.code) {
-        case 'auth/wrong-password':
-        case 'auth/invalid-credential':
-            message = "Password non corretta o credenziali non valide.";
-            break;
-        case 'auth/invalid-email':
-            message = "Formato e-mail non valido.";
-            break;
-        case 'auth/weak-password':
-            message = "La password deve contenere almeno 6 caratteri.";
-            break;
-        case 'auth/too-many-requests':
-            message = "Troppi tentativi falliti. Riprova più tardi.";
-            break;
-        default:
-            message = error.message;
-    }
-    showAuthError(message);
-}
-
-function showAuthError(msg) {
-    const errorElement = document.getElementById("authError");
-    if (errorElement) {
-        errorElement.textContent = msg;
-        errorElement.classList.remove("hidden");
-    } else {
-        alert(msg);
-    }
-}
-
-function resetAuthForm() {
-    const emailInput = document.getElementById("authEmail");
-    const passwordInput = document.getElementById("authPassword");
-    const errorElement = document.getElementById("authError");
-
-    if (emailInput) emailInput.value = "";
-    if (passwordInput) passwordInput.value = "";
-    if (errorElement) errorElement.classList.add("hidden");
-}
-
-function logout() {
-    if (auth) {
-        auth.signOut()
-            .then(() => console.log("Logout effettuato."))
-            .catch(err => console.error("Errore durante il logout:", err));
-    }
-}
-
-/* ==========================================================================
-   SINCRO DATI FIREBASE REALTIME DATABASE
-   ========================================================================== */
-
-function getMonthPath() {
-    const user = auth.currentUser;
-    if (!user) return null;
-    const formattedMonth = String(currentMonth).padStart(2, '0');
-    return `users/${user.uid}/years/${currentYear}/months/${formattedMonth}`;
-}
-
 function loadFirebaseData() {
-    const path = getMonthPath();
-    if (!path) return;
+    const user = auth ? auth.currentUser : null;
+    if (!user || !db) return;
 
-    if (budgetRef) {
-        budgetRef.off();
-    }
+    // Rimuove eventuali ascoltatori precedenti
+    if (budgetRef) budgetRef.off();
 
-    budgetRef = database.ref(path);
+    // Riferimento al nodo dell'utente
+    budgetRef = db.ref(`users/${user.uid}/budgetData`);
 
-    // Listener in tempo reale sulle modifiche dei dati
-    budgetRef.on("value", (snapshot) => {
-        const data = snapshot.val() || {};
-        renderDashboard(data);
-    }, (error) => {
-        console.error("Errore di lettura da Firebase:", error);
+    // Ascolto in tempo reale dei dati
+    budgetRef.on("value", snapshot => {
+        monthlyData = snapshot.val() || {};
+        renderAll();
+    }, error => {
+        console.error("Errore durante il recupero dati da Realtime Database:", error);
     });
 }
 
+function saveDataToFirebase(monthKey) {
+    const user = auth ? auth.currentUser : null;
+    if (!user || !db) return;
+
+    const dataToSave = monthlyData[monthKey] || { incomes: [], fixedOverrides: [], variableExpenses: [] };
+
+    // Salvataggio nel nodo specifico del mese
+    db.ref(`users/${user.uid}/budgetData/${monthKey}`)
+        .set(dataToSave)
+        .catch(error => {
+            console.error("Errore nel salvataggio su Realtime Database:", error);
+        });
+}
+
 /* ==========================================================================
-   RENDER DASHBOARD E CALCOLI
+   LOGICA DI CALCOLO
    ========================================================================== */
+function getFixedExpensesForMonth(monthKey) {
+    let list = baseMonthlyFixed.map(item => ({ ...item }));
+    
+    if (periodicExpenses[monthKey]) {
+        list = list.concat(periodicExpenses[monthKey].map(item => ({ ...item })));
+    }
 
-function renderDashboard(data) {
-    const incomes = data.incomes || {};
-    const expenses = data.expenses || {};
-    const fixedExpenses = data.fixedExpenses || {};
+    const savedData = monthlyData[monthKey];
+    if (savedData && Array.isArray(savedData.fixedOverrides)) {
+        savedData.fixedOverrides.forEach(override => {
+            const index = list.findIndex(f => f.title === override.title);
+            if (index !== -1) {
+                list[index].amount = override.amount;
+            } else {
+                list.push({ title: override.title, amount: override.amount });
+            }
+        });
+    }
 
-    let totalIncome = 0;
-    let totalExpense = 0;
-    let totalFixed = 0;
+    return list;
+}
 
-    // Calcolo Totale Entrate
-    Object.values(incomes).forEach(item => {
-        totalIncome += parseFloat(item.amount || 0);
-    });
+function calculateMonthSummary(monthKey) {
+    const [yearStr] = monthKey.split("-");
+    const yearNum = parseInt(yearStr, 10);
+    const yearMonths = YEAR_MONTHS[yearNum] || [];
+    const monthConf = yearMonths.find(m => m.key === monthKey) || { baseIncome: 1901.90 };
 
-    // Calcolo Totale Uscite
-    Object.values(expenses).forEach(item => {
-        totalExpense += parseFloat(item.amount || 0);
-    });
+    const data = monthlyData[monthKey] || { incomes: [], fixedOverrides: [], variableExpenses: [] };
+    const incomesList = Array.isArray(data.incomes) ? data.incomes : [];
+    const variableExpensesList = Array.isArray(data.variableExpenses) ? data.variableExpenses : [];
 
-    // Calcolo Totale Spese Fisse
-    Object.values(fixedExpenses).forEach(item => {
-        totalFixed += parseFloat(item.amount || 0);
-    });
+    const extraIncomesTotal = incomesList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+    const totalIncome = monthConf.baseIncome + extraIncomesTotal;
 
-    const netBalance = totalIncome - totalExpense - totalFixed;
+    const fixedExpensesList = getFixedExpensesForMonth(monthKey);
+    const totalFixed = fixedExpensesList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
 
-    // Aggiornamento KPI Card
-    updateElementText("totalIncomeDisplay", `€ ${totalIncome.toFixed(2)}`);
-    updateElementText("totalExpenseDisplay", `€ ${totalExpense.toFixed(2)}`);
-    updateElementText("totalFixedDisplay", `€ ${totalFixed.toFixed(2)}`);
-    updateElementText("netBalanceDisplay", `€ ${netBalance.toFixed(2)}`);
+    const variableExpensesTotal = variableExpensesList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
 
-    // Styling del bilancio in base al segno
-    const netBalanceEl = document.getElementById("netBalanceDisplay");
-    if (netBalanceEl) {
-        if (netBalance < 0) {
-            netBalanceEl.classList.remove("text-emerald-600", "text-slate-800");
-            netBalanceEl.classList.add("text-red-600");
-        } else if (netBalance > 0) {
-            netBalanceEl.classList.remove("text-red-600", "text-slate-800");
-            netBalanceEl.classList.add("text-emerald-600");
-        } else {
-            netBalanceEl.classList.remove("text-red-600", "text-emerald-600");
-            netBalanceEl.classList.add("text-slate-800");
+    const netMonthlyMargin = totalIncome - totalFixed - variableExpensesTotal;
+
+    return {
+        baseIncome: monthConf.baseIncome,
+        extraIncomesTotal,
+        totalIncome,
+        totalFixed,
+        variableExpensesTotal,
+        netMonthlyMargin,
+        fixedExpensesList,
+        incomesList,
+        variableExpensesList
+    };
+}
+
+function calculateCumulativeAccountBalance() {
+    let runningBalance = INITIAL_ACCOUNT_BALANCE;
+    const allYears = Object.keys(YEAR_MONTHS).map(Number).sort((a, b) => a - b);
+
+    for (const yr of allYears) {
+        const months = YEAR_MONTHS[yr] || [];
+        for (const m of months) {
+            const summary = calculateMonthSummary(m.key);
+            runningBalance += summary.netMonthlyMargin;
+
+            if (m.key === currentMonthKey) {
+                return runningBalance;
+            }
         }
     }
 
-    // Render delle liste
-    renderIncomesList(incomes);
-    renderExpensesList(expenses);
-    renderFixedExpensesList(fixedExpenses);
-}
-
-function updateElementText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
+    return runningBalance;
 }
 
 /* ==========================================================================
-   RENDER LISTE (ENTRATE, USCITE, SPESE FISSE)
+   RENDERING INTERFACCIA UTENTE
    ========================================================================== */
-
-function renderIncomesList(incomes) {
-    const container = document.getElementById("incomesList");
-    if (!container) return;
-
-    container.innerHTML = "";
-    const entries = Object.entries(incomes);
-
-    if (entries.length === 0) {
-        container.innerHTML = `<p class="text-sm text-slate-400 italic">Nessuna entrata registrata per questo mese.</p>`;
-        return;
-    }
-
-    entries.forEach(([id, item]) => {
-        const div = document.createElement("div");
-        div.className = "flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl text-sm";
-        div.innerHTML = `
-            <div>
-                <div class="font-medium text-slate-700 dark:text-slate-200">${escapeHtml(item.description)}</div>
-                <div class="text-xs text-slate-400">${item.date || ''}</div>
-            </div>
-            <div class="flex items-center gap-3">
-                <span class="font-semibold text-emerald-600 dark:text-emerald-400">+€ ${parseFloat(item.amount).toFixed(2)}</span>
-                <button onclick="deleteItem('incomes', '${id}')" class="text-slate-400 hover:text-red-500 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                </button>
-            </div>
-        `;
-        container.appendChild(div);
-    });
+function renderAll() {
+    renderKPIs();
+    renderTables();
 }
 
-function renderExpensesList(expenses) {
-    const container = document.getElementById("expensesList");
-    if (!container) return;
+function renderKPIs() {
+    const summary = calculateMonthSummary(currentMonthKey);
+    const cumulativeBalance = calculateCumulativeAccountBalance();
 
-    container.innerHTML = "";
-    const entries = Object.entries(expenses);
+    const elTotalIncome = document.getElementById("kpiTotalIncome");
+    const elTotalFixed = document.getElementById("kpiTotalFixed");
+    const elNetMargin = document.getElementById("kpiNetMargin");
+    const elCumulativeBalance = document.getElementById("kpiCumulativeBalance");
 
-    if (entries.length === 0) {
-        container.innerHTML = `<p class="text-sm text-slate-400 italic">Nessuna spesa registrata per questo mese.</p>`;
-        return;
+    if (elTotalIncome) elTotalIncome.textContent = formatCurrency(summary.totalIncome);
+    if (elTotalFixed) elTotalFixed.textContent = formatCurrency(summary.totalFixed);
+    if (elNetMargin) {
+        elNetMargin.textContent = formatCurrency(summary.netMonthlyMargin);
+        elNetMargin.className = summary.netMonthlyMargin >= 0 ? "kpi-value positive" : "kpi-value negative";
     }
-
-    entries.forEach(([id, item]) => {
-        const div = document.createElement("div");
-        div.className = "flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl text-sm";
-        div.innerHTML = `
-            <div>
-                <div class="font-medium text-slate-700 dark:text-slate-200">${escapeHtml(item.description)}</div>
-                <div class="text-xs text-slate-400">${item.category || 'Generale'} • ${item.date || ''}</div>
-            </div>
-            <div class="flex items-center gap-3">
-                <span class="font-semibold text-red-600 dark:text-red-400">-€ ${parseFloat(item.amount).toFixed(2)}</span>
-                <button onclick="deleteItem('expenses', '${id}')" class="text-slate-400 hover:text-red-500 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                </button>
-            </div>
-        `;
-        container.appendChild(div);
-    });
+    if (elCumulativeBalance) {
+        elCumulativeBalance.textContent = formatCurrency(cumulativeBalance);
+        elCumulativeBalance.className = cumulativeBalance >= 0 ? "kpi-value positive" : "kpi-value negative";
+    }
 }
 
-function renderFixedExpensesList(fixedExpenses) {
-    const container = document.getElementById("fixedExpensesList");
-    if (!container) return;
+function renderTables() {
+    const summary = calculateMonthSummary(currentMonthKey);
 
-    container.innerHTML = "";
-    const entries = Object.entries(fixedExpenses);
+    // Tabella Entrate Extra
+    const incomesTableBody = document.querySelector("#incomesTable tbody");
+    if (incomesTableBody) {
+        incomesTableBody.innerHTML = "";
+        const sortedIncomes = [...summary.incomesList].sort((a, b) => 
+            (b.date || "").localeCompare(a.date || "")
+        );
 
-    if (entries.length === 0) {
-        container.innerHTML = `<p class="text-sm text-slate-400 italic">Nessuna spesa fissa configurata.</p>`;
-        return;
+        sortedIncomes.forEach(inc => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${escapeHtml(inc.title)}</td>
+                <td>${formatCurrency(inc.amount)}</td>
+                <td>${escapeHtml(inc.date || '-')}</td>
+                <td>
+                    <button class="btn-icon" onclick="deleteIncome('${inc.id}')" title="Elimina">🗑️</button>
+                </td>
+            `;
+            incomesTableBody.appendChild(tr);
+        });
     }
 
-    entries.forEach(([id, item]) => {
-        const div = document.createElement("div");
-        div.className = "flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl text-sm";
-        div.innerHTML = `
-            <div>
-                <div class="font-medium text-slate-700 dark:text-slate-200">${escapeHtml(item.description)}</div>
-            </div>
-            <div class="flex items-center gap-3">
-                <span class="font-semibold text-amber-600 dark:text-amber-400">€ ${parseFloat(item.amount).toFixed(2)}</span>
-                <button onclick="deleteItem('fixedExpenses', '${id}')" class="text-slate-400 hover:text-red-500 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                </button>
-            </div>
-        `;
-        container.appendChild(div);
-    });
+    // Tabella Uscite Fisse
+    const fixedTableBody = document.querySelector("#fixedExpensesTable tbody");
+    if (fixedTableBody) {
+        fixedTableBody.innerHTML = "";
+        summary.fixedExpensesList.forEach(fix => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${escapeHtml(fix.title)}</td>
+                <td>${formatCurrency(fix.amount)}</td>
+                <td>
+                    <button class="btn-icon" onclick="openEditFixedModal('${escapeHtml(fix.title)}', ${fix.amount})" title="Modifica">✏️</button>
+                </td>
+            `;
+            fixedTableBody.appendChild(tr);
+        });
+    }
 }
 
 /* ==========================================================================
-   OPERAZIONI CRUD (AGGIUNTA E ELIMINAZIONE)
+   OPERAZIONI DATI & MODALI
    ========================================================================== */
-
-function addIncome(e) {
-    if (e) e.preventDefault();
-    const descInput = document.getElementById("incomeDesc");
-    const amountInput = document.getElementById("incomeAmount");
-
-    if (!descInput || !amountInput) return;
-
-    const description = descInput.value.trim();
-    const amount = parseFloat(amountInput.value);
-
-    if (!description || isNaN(amount) || amount <= 0) {
-        alert("Inserisci una descrizione e un importo valido per l'entrata.");
-        return;
-    }
-
-    const path = getMonthPath();
-    if (!path) return;
-
-    const newRef = database.ref(`${path}/incomes`).push();
-    newRef.set({
-        description: description,
-        amount: amount,
-        date: new Date().toISOString().split('T')[0]
-    }).then(() => {
-        descInput.value = "";
-        amountInput.value = "";
-        closeIncomeModal();
-    }).catch(err => console.error("Errore aggiunta entrata:", err));
-}
-
-function addExpense(e) {
-    if (e) e.preventDefault();
-    const descInput = document.getElementById("expenseDesc");
-    const amountInput = document.getElementById("expenseAmount");
-    const catInput = document.getElementById("expenseCategory");
-
-    if (!descInput || !amountInput) return;
-
-    const description = descInput.value.trim();
-    const amount = parseFloat(amountInput.value);
-    const category = catInput ? catInput.value : "Generale";
-
-    if (!description || isNaN(amount) || amount <= 0) {
-        alert("Inserisci una descrizione e un importo valido per la spesa.");
-        return;
-    }
-
-    const path = getMonthPath();
-    if (!path) return;
-
-    const newRef = database.ref(`${path}/expenses`).push();
-    newRef.set({
-        description: description,
-        amount: amount,
-        category: category,
-        date: new Date().toISOString().split('T')[0]
-    }).then(() => {
-        descInput.value = "";
-        amountInput.value = "";
-    }).catch(err => console.error("Errore aggiunta spesa:", err));
-}
-
-function addFixedExpense(e) {
-    if (e) e.preventDefault();
-    const descInput = document.getElementById("fixedDesc");
-    const amountInput = document.getElementById("fixedAmount");
-
-    if (!descInput || !amountInput) return;
-
-    const description = descInput.value.trim();
-    const amount = parseFloat(amountInput.value);
-
-    if (!description || isNaN(amount) || amount <= 0) {
-        alert("Inserisci una descrizione e un importo valido per la spesa fissa.");
-        return;
-    }
-
-    const path = getMonthPath();
-    if (!path) return;
-
-    const newRef = database.ref(`${path}/fixedExpenses`).push();
-    newRef.set({
-        description: description,
-        amount: amount
-    }).then(() => {
-        descInput.value = "";
-        amountInput.value = "";
-        closeFixedModal();
-    }).catch(err => console.error("Errore aggiunta spesa fissa:", err));
-}
-
-function deleteItem(type, itemId) {
-    if (!confirm("Sei sicuro di voler eliminare questa voce?")) return;
-
-    const path = getMonthPath();
-    if (!path) return;
-
-    database.ref(`${path}/${type}/${itemId}`).remove()
-        .catch(err => console.error("Errore eliminazione:", err));
-}
-
-/* ==========================================================================
-   GESTIONE MODALI
-   ========================================================================== */
-
 function openIncomeModal() {
     const modal = document.getElementById("incomeModal");
-    if (modal) modal.classList.remove("hidden");
+    if (modal) modal.style.display = "flex";
 }
 
 function closeIncomeModal() {
     const modal = document.getElementById("incomeModal");
-    if (modal) modal.classList.add("hidden");
+    if (modal) modal.style.display = "none";
+    const t = document.getElementById("incomeTitle");
+    const a = document.getElementById("incomeAmount");
+    const d = document.getElementById("incomeDate");
+    if (t) t.value = "";
+    if (a) a.value = "";
+    if (d) d.value = "";
 }
 
-function openFixedModal() {
+function saveIncome() {
+    const titleEl = document.getElementById("incomeTitle");
+    const amountEl = document.getElementById("incomeAmount");
+    const dateEl = document.getElementById("incomeDate");
+
+    const title = titleEl ? titleEl.value.trim() : "";
+    const amount = amountEl ? parseFloat(amountEl.value) : NaN;
+    const date = dateEl ? dateEl.value : "";
+
+    if (!title || isNaN(amount)) {
+        alert("Inserisci un titolo e un importo validi.");
+        return;
+    }
+
+    if (!monthlyData[currentMonthKey]) {
+        monthlyData[currentMonthKey] = { incomes: [], fixedOverrides: [], variableExpenses: [] };
+    }
+
+    const newIncome = {
+        id: "inc_" + Date.now(),
+        title,
+        amount,
+        date: date || new Date().toISOString().split("T")[0]
+    };
+
+    if (!Array.isArray(monthlyData[currentMonthKey].incomes)) {
+        monthlyData[currentMonthKey].incomes = [];
+    }
+    monthlyData[currentMonthKey].incomes.push(newIncome);
+
+    saveDataToFirebase(currentMonthKey);
+    closeIncomeModal();
+    renderAll();
+}
+
+function deleteIncome(id) {
+    if (!monthlyData[currentMonthKey] || !Array.isArray(monthlyData[currentMonthKey].incomes)) return;
+
+    monthlyData[currentMonthKey].incomes = monthlyData[currentMonthKey].incomes.filter(i => i.id !== id);
+    saveDataToFirebase(currentMonthKey);
+    renderAll();
+}
+
+function openEditFixedModal(title, currentAmount) {
+    const elTitle = document.getElementById("fixedTitle");
+    const elAmount = document.getElementById("fixedAmount");
+    if (elTitle) elTitle.value = title;
+    if (elAmount) elAmount.value = currentAmount;
+
     const modal = document.getElementById("fixedModal");
-    if (modal) modal.classList.remove("hidden");
+    if (modal) modal.style.display = "flex";
 }
 
 function closeFixedModal() {
     const modal = document.getElementById("fixedModal");
-    if (modal) modal.classList.add("hidden");
+    if (modal) modal.style.display = "none";
+}
+
+function saveFixedOverride() {
+    const titleEl = document.getElementById("fixedTitle");
+    const amountEl = document.getElementById("fixedAmount");
+
+    const title = titleEl ? titleEl.value : "";
+    const amount = amountEl ? parseFloat(amountEl.value) : NaN;
+
+    if (isNaN(amount)) {
+        alert("Inserisci un importo valido.");
+        return;
+    }
+
+    if (!monthlyData[currentMonthKey]) {
+        monthlyData[currentMonthKey] = { incomes: [], fixedOverrides: [], variableExpenses: [] };
+    }
+    if (!Array.isArray(monthlyData[currentMonthKey].fixedOverrides)) {
+        monthlyData[currentMonthKey].fixedOverrides = [];
+    }
+
+    const overrides = monthlyData[currentMonthKey].fixedOverrides;
+    const index = overrides.findIndex(o => o.title === title);
+
+    if (index !== -1) {
+        overrides[index].amount = amount;
+    } else {
+        overrides.push({ title, amount });
+    }
+
+    saveDataToFirebase(currentMonthKey);
+    closeFixedModal();
+    renderAll();
+}
+
+function logout() {
+    if (auth) auth.signOut();
 }
 
 /* ==========================================================================
-   UTILITY
+   UTILITIES
    ========================================================================== */
+function formatCurrency(val) {
+    return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(val || 0);
+}
 
 function escapeHtml(str) {
-    if (!str) return "";
-    return str.replace(/[&<>"']/g, (m) => {
-        return {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        }[m];
-    });
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
