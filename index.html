@@ -609,29 +609,40 @@
     }
 
     // Calcola il saldo del Conto Generale considerando la base iniziale di Agosto già al netto e sommando i margini/INPS
-    function calculateCumulativeAccountBalance() {
-        const currentIndex = CHRONOLOGICAL_MONTHS.findIndex(m => m.key === currentMonth && m.year === currentYear);
-        const targetIndex = currentIndex !== -1 ? currentIndex : 0;
+   function calculateCumulativeAccountBalance() {
+    const currentIndex = CHRONOLOGICAL_MONTHS.findIndex(m => m.key === currentMonth && m.year === currentYear);
+    const targetIndex = currentIndex !== -1 ? currentIndex : 0;
 
-        // Base iniziale del mese di Agosto 2026 (già al netto del disponibile)
-        let balance = INITIAL_ACCOUNT_BALANCE;
+    // Base iniziale del mese di Agosto 2026
+    let balance = INITIAL_ACCOUNT_BALANCE;
 
-        // Se siamo ad Agosto 2026, aggiungiamo il bonifico INPS di Agosto se non già incluso nel saldo di partenza
-        if (targetIndex === 0) {
-            balance += FIXED_INPS_INCOME;
+    // Aggiunta fissa INPS
+    balance += FIXED_INPS_INCOME;
+
+    // Calcolo del margine cumulato da Agosto 2026 fino al mese selezionato
+    for (let i = 0; i <= targetIndex; i++) {
+        const item = CHRONOLOGICAL_MONTHS[i];
+        
+        if (i === 0) {
+            // Per Agosto 2026 consideriamo solo la variazione variabile (Entrate Extra - Uscite Variabili)
+            // se la quota base e le spese fisse sono già state considerate nel saldo iniziale di 5.705,10 €
+            const currentExpenses = Object.values(expensesData[item.key] || {});
+            const currentIncomes = Object.values(incomesData[item.key] || {});
+            
+            const extraIncome = currentIncomes.reduce((sum, item) => sum + item.amount, 0);
+            const variableExpense = currentExpenses.reduce((sum, item) => sum + item.amount, 0);
+            
+            balance += (extraIncome - variableExpense);
         } else {
-            // Per i mesi successivi ad Agosto, sommiamo i margini netti accumulati
-            balance += FIXED_INPS_INCOME; // Quota INPS di Agosto
-            for (let i = 1; i <= targetIndex; i++) {
-                const item = CHRONOLOGICAL_MONTHS[i];
-                const margin = getMonthNetMargin(item.key, item.year);
-                balance += margin;
-            }
+            // Per i mesi successivi sommiamo il margine netto completo
+            const margin = getMonthNetMargin(item.key, item.year);
+            balance += margin;
         }
-
-        const currentLabel = CHRONOLOGICAL_MONTHS[targetIndex] ? CHRONOLOGICAL_MONTHS[targetIndex].label : "";
-        return { balance, currentLabel };
     }
+
+    const currentLabel = CHRONOLOGICAL_MONTHS[targetIndex] ? CHRONOLOGICAL_MONTHS[targetIndex].label : "";
+    return { balance, currentLabel };
+}
 
     function updateView() {
         const monthConfig = getCurrentMonthConfig();
