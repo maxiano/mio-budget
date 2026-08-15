@@ -1,4 +1,4 @@
-  /* ==========================================================================
+/* ==========================================================================
    CONFIGURAZIONE & DATI INIZIALI
    ========================================================================== */
 const INITIAL_ACCOUNT_BALANCE = 5348.43;
@@ -47,7 +47,7 @@ let monthlyData = {};
 let unsubscribeFirebase = null;
 
 /* ==========================================================================
-   INIZIALIZZAZIONE FIREBASE
+   INIZIALIZZAZIONE FIREBASE CON PERSISTENZA OFFLINE
    ========================================================================== */
 let auth = null;
 let db = null;
@@ -58,6 +58,15 @@ if (typeof firebase !== 'undefined') {
     }
     auth = firebase.auth();
     db = firebase.firestore();
+
+    // Attiva la persistenza offline di Firestore per supporto PWA
+    db.enablePersistence({ synchronizeTabs: true }).catch(err => {
+        if (err.code === 'failed-precondition') {
+            console.warn('Persistenza fallita: troppe schede aperte.');
+        } else if (err.code === 'unimplemented') {
+            console.warn('Il browser corrente non supporta la persistenza offline.');
+        }
+    });
 }
 
 /* ==========================================================================
@@ -68,19 +77,21 @@ document.addEventListener("DOMContentLoaded", () => {
     
     if (auth) {
         auth.onAuthStateChanged(user => {
+            const loginSection = document.getElementById("loginSection");
+            const appContent = document.getElementById("appContent");
+
             if (user) {
-                document.getElementById("loginSection").style.display = "none";
-                document.getElementById("appContent").style.display = "block";
+                if (loginSection) loginSection.style.display = "none";
+                if (appContent) appContent.style.display = "block";
                 loadFirebaseData();
             } else {
-                document.getElementById("loginSection").style.display = "block";
-                document.getElementById("appContent").style.display = "none";
+                if (loginSection) loginSection.style.display = "block";
+                if (appContent) appContent.style.display = "none";
                 if (unsubscribeFirebase) unsubscribeFirebase();
             }
         });
     }
 
-    // Chiusura modali con tasto ESC
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
             closeIncomeModal();
@@ -158,26 +169,21 @@ function saveDataToFirebase(monthKey) {
     const user = auth.currentUser;
     if (!user || !db) return;
 
-    const dataToSave = monthlyData[monthKey] || { incomes: [], fixedOverrides: [] };
+    const dataToSave = monthlyData[monthKey] || { incomes: [], fixedOverrides: [], variableExpenses: [] };
 
     db.collection("users")
         .doc(user.uid)
         .collection("budgetData")
         .doc(monthKey)
-        .set(dataToSave)
+        .set(dataToSave, { merge: true })
         .catch(error => {
             console.error("Errore nel salvataggio su Firebase:", error);
         });
 }
 
 /* ==========================================================================
-   LOGICA DI CALCOLO & CALCOLO CUMULATIVO
+   LOGICA DI CALCOLO
    ========================================================================== */
-function getCurrentMonthConfig() {
-    const months = YEAR_MONTHS[currentYear] || [];
-    return months.find(m => m.key === currentMonthKey) || { baseIncome: 1901.90 };
-}
-
 function getFixedExpensesForMonth(monthKey) {
     let list = baseMonthlyFixed.map(item => ({ ...item }));
     
@@ -201,13 +207,12 @@ function getFixedExpensesForMonth(monthKey) {
 }
 
 function calculateMonthSummary(monthKey) {
-    // Individua la configurazione specifica del mese target
     const [yearStr] = monthKey.split("-");
     const yearNum = parseInt(yearStr, 10);
     const yearMonths = YEAR_MONTHS[yearNum] || [];
     const monthConf = yearMonths.find(m => m.key === monthKey) || { baseIncome: 1901.90 };
 
-    const data = monthlyData[monthKey] || { incomes: [], fixedOverrides: [] };
+    const data = monthlyData[monthKey] || { incomes: [], fixedOverrides: [], variableExpenses: [] };
 
     const extraIncomesTotal = (data.incomes || []).reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
     const totalIncome = monthConf.baseIncome + extraIncomesTotal;
@@ -215,16 +220,20 @@ function calculateMonthSummary(monthKey) {
     const fixedExpensesList = getFixedExpensesForMonth(monthKey);
     const totalFixed = fixedExpensesList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
 
-    const netMonthlyMargin = totalIncome - totalFixed;
+    const variableExpensesTotal = (data.variableExpenses || []).reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+
+    const netMonthlyMargin = totalIncome - totalFixed - variableExpensesTotal;
 
     return {
         baseIncome: monthConf.baseIncome,
         extraIncomesTotal,
         totalIncome,
         totalFixed,
+        variableExpensesTotal,
         netMonthlyMargin,
         fixedExpensesList,
-        incomesList: data.incomes || []
+        incomesList: data.incomes || [],
+        variableExpensesList: data.variableExpenses || []
     };
 }
 
@@ -279,7 +288,7 @@ function renderKPIs() {
 function renderTables() {
     const summary = calculateMonthSummary(currentMonthKey);
 
-    // Table Entrate Extra (Ordinamento per data tramite confronto stringhe ISO)
+    // Table Entrate Extra
     const incomesTableBody = document.querySelector("#incomesTable tbody");
     if (incomesTableBody) {
         incomesTableBody.innerHTML = "";
@@ -322,7 +331,7 @@ function renderTables() {
 /* ==========================================================================
    OPERAZIONI DATI & MODALI
    ========================================================================== */
-function openAddIncomeModal() {
+function openIncomeModal() {
     const modal = document.getElementById("incomeModal");
     if (modal) modal.style.display = "flex";
 }
@@ -330,9 +339,12 @@ function openAddIncomeModal() {
 function closeIncomeModal() {
     const modal = document.getElementById("incomeModal");
     if (modal) modal.style.display = "none";
-    document.getElementById("incomeTitle").value = "";
-    document.getElementById("incomeAmount").value = "";
-    document.getElementById("incomeDate").value = "";
+    const t = document.getElementById("incomeTitle");
+    const a = document.getElementById("incomeAmount");
+    const d = document.getElementById("incomeDate");
+    if (t) t.value = "";
+    if (a) a.value = "";
+    if (d) d.value = "";
 }
 
 function saveIncome() {
@@ -346,7 +358,7 @@ function saveIncome() {
     }
 
     if (!monthlyData[currentMonthKey]) {
-        monthlyData[currentMonthKey] = { incomes: [], fixedOverrides: [] };
+        monthlyData[currentMonthKey] = { incomes: [], fixedOverrides: [], variableExpenses: [] };
     }
 
     const newIncome = {
@@ -356,7 +368,9 @@ function saveIncome() {
         date: date || new Date().toISOString().split("T")[0]
     };
 
+    if (!monthlyData[currentMonthKey].incomes) monthlyData[currentMonthKey].incomes = [];
     monthlyData[currentMonthKey].incomes.push(newIncome);
+
     saveDataToFirebase(currentMonthKey);
     closeIncomeModal();
     renderAll();
@@ -371,8 +385,11 @@ function deleteIncome(id) {
 }
 
 function openEditFixedModal(title, currentAmount) {
-    document.getElementById("fixedTitle").value = title;
-    document.getElementById("fixedAmount").value = currentAmount;
+    const elTitle = document.getElementById("fixedTitle");
+    const elAmount = document.getElementById("fixedAmount");
+    if (elTitle) elTitle.value = title;
+    if (elAmount) elAmount.value = currentAmount;
+
     const modal = document.getElementById("fixedModal");
     if (modal) modal.style.display = "flex";
 }
@@ -392,7 +409,7 @@ function saveFixedOverride() {
     }
 
     if (!monthlyData[currentMonthKey]) {
-        monthlyData[currentMonthKey] = { incomes: [], fixedOverrides: [] };
+        monthlyData[currentMonthKey] = { incomes: [], fixedOverrides: [], variableExpenses: [] };
     }
     if (!monthlyData[currentMonthKey].fixedOverrides) {
         monthlyData[currentMonthKey].fixedOverrides = [];
@@ -410,6 +427,10 @@ function saveFixedOverride() {
     saveDataToFirebase(currentMonthKey);
     closeFixedModal();
     renderAll();
+}
+
+function logout() {
+    if (auth) auth.signOut();
 }
 
 /* ==========================================================================
