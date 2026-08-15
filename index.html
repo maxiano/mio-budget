@@ -26,9 +26,11 @@
     </style>
     <script>
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=6')
-    .then(reg => console.log('SW registrato con successo:', reg))
-    .catch(err => console.error('Errore registrazione SW:', err));
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js?v=8')
+      .then(reg => console.log('SW registrato con successo:', reg.scope))
+      .catch(err => console.error('Errore registrazione SW:', err));
+  });
 }
 </script>
 </head>
