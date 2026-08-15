@@ -1,43 +1,82 @@
-const CACHE_NAME = 'budget-app-v2';
-const ASSETS = [
+const CACHE_NAME = 'budget-app-v4';
+
+// File locali dell'applicazione
+const LOCAL_ASSETS = [
   './',
   './index.html',
+  './app.js',
+  './manifest.json'
+];
+
+// Librerie esterne su CDN
+const CDN_ASSETS = [
   'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js',
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js',
-  'https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js'
+  'https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js',
+  'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js'
 ];
 
-// Installazione del Service Worker e salvataggio dei file in Cache
+// Installazione: gestione separata per evitare che eventuali errori CORS blocchino il Service Worker
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
+    caches.open(CACHE_NAME).then(async (cache) => {
+      // 1. Salva file locali
+      await cache.addAll(LOCAL_ASSETS);
+
+      // 2. Salva risorse CDN con mode 'no-cors' per evitare blocchi CORS
+      const cdnPromises = CDN_ASSETS.map(async (url) => {
+        try {
+          const response = await fetch(url, { mode: 'no-cors' });
+          await cache.put(url, response);
+        } catch (err) {
+          console.warn(`Impossibile archiviare la CDN in cache: ${url}`, err);
+        }
+      });
+
+      return Promise.all(cdnPromises);
     }).then(() => self.skipWaiting())
   );
 });
 
-// Attivazione e pulizia delle vecchie cache
+// Attivazione: rimozione vecchie cache
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
       );
     }).then(() => self.clients.claim())
   );
 });
 
-// Intercettazione delle richieste di rete per far funzionare l'app offline
+// Intercettazione richieste di rete
 self.addEventListener('fetch', (e) => {
+  const url = new URL(e.request.url);
+
+  // Esclude le chiamate dirette al database/autenticazione Firebase (gestite dall'SDK)
+  if (
+    url.hostname.includes('firebaseio.com') || 
+    url.hostname.includes('identitytoolkit') || 
+    url.hostname.includes('firestore.googleapis.com')
+  ) {
+    return;
+  }
+
+  if (e.request.method !== 'GET') return;
+
+  // Strategia Stale-While-Revalidate (restituisce cache e aggiorna in background)
   e.respondWith(
     caches.match(e.request).then((cachedResponse) => {
-      return cachedResponse || fetch(e.request);
+      const fetchPromise = fetch(e.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, networkResponse.clone()));
+        }
+        return networkResponse;
+      }).catch(() => cachedResponse);
+
+      return cachedResponse || fetchPromise;
     })
   );
 });
