@@ -609,32 +609,30 @@
     }
 
     // Calcola il saldo del Conto Generale considerando la base iniziale di Agosto già al netto e sommando i margini/INPS
-   function calculateCumulativeAccountBalance() {
+ function calculateCumulativeAccountBalance() {
     const currentIndex = CHRONOLOGICAL_MONTHS.findIndex(m => m.key === currentMonth && m.year === currentYear);
     const targetIndex = currentIndex !== -1 ? currentIndex : 0;
 
-    // Base iniziale del mese di Agosto 2026
+    // Base iniziale aggiornata a 5.884,00 €
     let balance = INITIAL_ACCOUNT_BALANCE;
 
-    // Aggiunta fissa INPS
-    balance += FIXED_INPS_INCOME;
-
-    // Calcolo del margine cumulato da Agosto 2026 fino al mese selezionato
+    // Calcolo del saldo cumulato da Agosto 2026 fino al mese selezionato
     for (let i = 0; i <= targetIndex; i++) {
         const item = CHRONOLOGICAL_MONTHS[i];
-        
+
         if (i === 0) {
-            // Per Agosto 2026 consideriamo solo la variazione variabile (Entrate Extra - Uscite Variabili)
-            // se la quota base e le spese fisse sono già state considerate nel saldo iniziale di 5.705,10 €
+            // Per Agosto 2026 (base di partenza già al netto delle uscite/entrate fisse),
+            // sommiamo le entrate extra e sottraiamo le uscite variabili inserite manualmente
             const currentExpenses = Object.values(expensesData[item.key] || {});
             const currentIncomes = Object.values(incomesData[item.key] || {});
-            
-            const extraIncome = currentIncomes.reduce((sum, item) => sum + item.amount, 0);
-            const variableExpense = currentExpenses.reduce((sum, item) => sum + item.amount, 0);
-            
+
+            const extraIncome = currentIncomes.reduce((sum, entry) => sum + entry.amount, 0);
+            const variableExpense = currentExpenses.reduce((sum, entry) => sum + entry.amount, 0);
+
             balance += (extraIncome - variableExpense);
         } else {
-            // Per i mesi successivi sommiamo il margine netto completo
+            // Per i mesi da Settembre in poi, sommiamo il margine netto mensile completo
+            // (Entrate Totali - Uscite Fisse - Uscite Variabili)
             const margin = getMonthNetMargin(item.key, item.year);
             balance += margin;
         }
