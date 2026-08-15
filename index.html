@@ -609,29 +609,24 @@
     }
 
     // Calcola il saldo del Conto Generale considerando la base iniziale di Agosto già al netto e sommando i margini/INPS
-    function calculateCumulativeAccountBalance() {
-        const currentIndex = CHRONOLOGICAL_MONTHS.findIndex(m => m.key === currentMonth && m.year === currentYear);
-        const targetIndex = currentIndex !== -1 ? currentIndex : 0;
+ // Calcola il saldo del Conto Generale accumulato al 1° di ogni mese
+function calculateCumulativeAccountBalance() {
+    const currentIndex = CHRONOLOGICAL_MONTHS.findIndex(m => m.key === currentMonth && m.year === currentYear);
+    const targetIndex = currentIndex !== -1 ? currentIndex : 0;
 
-        // Base iniziale del mese di Agosto 2026 (già al netto del disponibile)
-        let balance = INITIAL_ACCOUNT_BALANCE;
+    // Partenza dal saldo base iniziale
+    let balance = INITIAL_ACCOUNT_BALANCE;
 
-        // Se siamo ad Agosto 2026, aggiungiamo il bonifico INPS di Agosto se non già incluso nel saldo di partenza
-        if (targetIndex === 0) {
-            balance += FIXED_INPS_INCOME;
-        } else {
-            // Per i mesi successivi ad Agosto, sommiamo i margini netti accumulati
-            balance += FIXED_INPS_INCOME; // Quota INPS di Agosto
-            for (let i = 1; i <= targetIndex; i++) {
-                const item = CHRONOLOGICAL_MONTHS[i];
-                const margin = getMonthNetMargin(item.key, item.year);
-                balance += margin;
-            }
-        }
-
-        const currentLabel = CHRONOLOGICAL_MONTHS[targetIndex] ? CHRONOLOGICAL_MONTHS[targetIndex].label : "";
-        return { balance, currentLabel };
+    // Somma il margine netto (+ entrate - uscite fisse - uscite variabili) di ogni mese fino a quello selezionato
+    for (let i = 0; i <= targetIndex; i++) {
+        const item = CHRONOLOGICAL_MONTHS[i];
+        const margin = getMonthNetMargin(item.key, item.year);
+        balance += margin;
     }
+
+    const currentLabel = CHRONOLOGICAL_MONTHS[targetIndex] ? CHRONOLOGICAL_MONTHS[targetIndex].label : "";
+    return { balance, currentLabel };
+}
 
     function updateView() {
         const monthConfig = getCurrentMonthConfig();
