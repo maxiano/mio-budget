@@ -1,6 +1,6 @@
-const CACHE_NAME = 'budget-app-v7';
+const CACHE_NAME = 'budget-app-v8';
 
-// Risorse locali essenziali
+// Risorse locali dell'applicazione
 const LOCAL_ASSETS = [
   './',
   './index.html',
@@ -8,7 +8,7 @@ const LOCAL_ASSETS = [
   './manifest.json'
 ];
 
-// Dipendenze esterne
+// Librerie esterne CDN
 const CDN_ASSETS = [
   'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js',
@@ -17,17 +17,35 @@ const CDN_ASSETS = [
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js'
 ];
 
-// Installazione: forza l'attivazione immediata senza attendere
+// Installazione: Caching tollerante agli errori (non blocca il SW se un asset fallisce)
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll([...LOCAL_ASSETS, ...CDN_ASSETS]);
+    caches.open(CACHE_NAME).then(async (cache) => {
+      // 1. Caching file locali
+      for (const asset of LOCAL_ASSETS) {
+        try {
+          await cache.add(asset);
+        } catch (err) {
+          console.warn('Impossibile salvare in cache la risorsa locale:', asset);
+        }
+      }
+
+      // 2. Caching CDN esterne in modalità no-cors
+      for (const cdnUrl of CDN_ASSETS) {
+        try {
+          const req = new Request(cdnUrl, { mode: 'no-cors' });
+          const res = await fetch(req);
+          await cache.put(req, res);
+        } catch (err) {
+          console.warn('Impossibile salvare in cache la CDN:', cdnUrl);
+        }
+      }
     })
   );
 });
 
-// Attivazione: elimina subito tutte le vecchie cache (v5, v6, ecc.) e prende il controllo dei client
+// Attivazione: Rimozione vecchie cache e presa in carico dei client
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -42,36 +60,32 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Intercettazione e Gestione Richieste
+// Intercettazione Richieste di Rete
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // 1. Ignora protocolli non-HTTP (es. chrome-extension://, file://)
+  // Ignora protocolli non-HTTP (es. chrome-extension://)
   if (!url.protocol.startsWith('http')) return;
 
-  // 2. Ignora le chiamate backend di Firebase, Google APIs e WebSocket
+  // Ignora chiamate verso i server Firebase/Google
   if (
     url.hostname.includes('firebaseio.com') ||
     url.hostname.includes('googleapis.com') ||
-    url.hostname.includes('identitytoolkit') ||
-    url.hostname.includes('gstatic.com/recaptcha')
+    url.hostname.includes('identitytoolkit')
   ) {
     return;
   }
 
-  // 3. Ignora metodi diversi da GET
   if (event.request.method !== 'GET') return;
 
-  // 4. Strategia Network-First con fallback su Cache (Zero conflitti di stream clone)
+  // Strategia Network-First con Fallback su Cache
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
-        // Se la risposta non è valida o non è status 200, la restituisce subito
         if (!networkResponse || networkResponse.status !== 200) {
           return networkResponse;
         }
 
-        // CLONAZIONE SICURA PRIMA DI LEGGERE LO STREAM
         const responseToCache = networkResponse.clone();
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, responseToCache);
@@ -80,7 +94,6 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        // Se la rete fallisce (es. offline), recupera dalla cache
         return caches.match(event.request);
       })
   );
