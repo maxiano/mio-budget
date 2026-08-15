@@ -611,29 +611,38 @@
     // Calcola il saldo del Conto Generale considerando la base iniziale di Agosto già al netto e sommando i margini/INPS
 // Assicurati che la costante sia impostata a 5884
 
+// Calcolo Saldo Cumulativo
 function calculateCumulativeAccountBalance() {
     const currentIndex = CHRONOLOGICAL_MONTHS.findIndex(m => m.key === currentMonth && m.year === currentYear);
     const targetIndex = currentIndex !== -1 ? currentIndex : 0;
 
-    let balance = INITIAL_ACCOUNT_BALANCE;
+    let balance = 5705.10; // Base iniziale esatta
 
     for (let i = 0; i <= targetIndex; i++) {
         const item = CHRONOLOGICAL_MONTHS[i];
 
-        if (i === 0) {
-            // Se Agosto_Prev è il mese di partenza e INITIAL_ACCOUNT_BALANCE 
-            // è il saldo già calcolato al netto delle fisse di Agosto:
-            const currentExpenses = Object.values(expensesData[item.key] || {});
-            const currentIncomes = Object.values(incomesData[item.key] || {});
+        // 1. Entrate fisse del mese (1.901,90 € per Agosto/Settembre, 2.601,90 € da Ottobre)
+        const monthConf = getCurrentMonthConfig();
+        const yearMonths = YEAR_MONTHS[item.year] || [];
+        const monthData = yearMonths.find(m => m.key === item.key) || { baseIncome: 1901.90 };
+        const baseIncome = monthData.baseIncome;
 
-            const extraIncome = currentIncomes.reduce((sum, entry) => sum + entry.amount, 0);
-            const variableExpense = currentExpenses.reduce((sum, entry) => sum + entry.amount, 0);
+        // 2. Entrate registrate (extra)
+        const currentIncomes = Object.values(incomesData[item.key] || {});
+        const extraIncome = currentIncomes.reduce((sum, entry) => sum + (parseFloat(entry.amount) || 0), 0);
 
-            balance += (extraIncome - variableExpense);
-        } else {
-            // Per i mesi successivi aggiunge il margine netto completo
-            balance += getMonthNetMargin(item.key, item.year);
-        }
+        // 3. Uscite Fisse del mese
+        const fixedExpenses = getMonthFixedExpenses(item.key);
+        const totalFixed = fixedExpenses.reduce((sum, entry) => sum + (parseFloat(entry.amount) || 0), 0);
+
+        // 4. Uscite Variabili (registrate)
+        const currentExpenses = Object.values(expensesData[item.key] || {});
+        const totalVariable = currentExpenses.reduce((sum, entry) => sum + (parseFloat(entry.amount) || 0), 0);
+
+        // Formula: Saldo + (Entrate Fisse + Entrate Extra) - (Uscite Fisse + Uscite Variabili)
+        const netMonth = (baseIncome + extraIncome) - (totalFixed + totalVariable);
+        
+        balance += netMonth;
     }
 
     const currentLabel = CHRONOLOGICAL_MONTHS[targetIndex] ? CHRONOLOGICAL_MONTHS[targetIndex].label : "";
