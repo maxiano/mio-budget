@@ -25,13 +25,11 @@
         body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; user-select: none; }
     </style>
     <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
-        .then(reg => console.log('Service Worker registrato con successo!', reg))
-        .catch(err => console.error('Errore nella registrazione del Service Worker:', err));
-    });
-  }
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js?v=6')
+    .then(reg => console.log('SW registrato con successo:', reg))
+    .catch(err => console.error('Errore registrazione SW:', err));
+}
 </script>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800 pb-12">
