@@ -615,27 +615,24 @@ function calculateCumulativeAccountBalance() {
     const currentIndex = CHRONOLOGICAL_MONTHS.findIndex(m => m.key === currentMonth && m.year === currentYear);
     const targetIndex = currentIndex !== -1 ? currentIndex : 0;
 
-    // Partiamo dalla base di 5.884,00 €
     let balance = INITIAL_ACCOUNT_BALANCE;
 
     for (let i = 0; i <= targetIndex; i++) {
         const item = CHRONOLOGICAL_MONTHS[i];
 
         if (i === 0) {
-            // Per il mese iniziale (Agosto 2026):
-            // Consideriamo solo l'impatto delle entrate extra e delle uscite variabili registrate
+            // Se Agosto_Prev è il mese di partenza e INITIAL_ACCOUNT_BALANCE 
+            // è il saldo già calcolato al netto delle fisse di Agosto:
             const currentExpenses = Object.values(expensesData[item.key] || {});
             const currentIncomes = Object.values(incomesData[item.key] || {});
 
             const extraIncome = currentIncomes.reduce((sum, entry) => sum + entry.amount, 0);
             const variableExpense = currentExpenses.reduce((sum, entry) => sum + entry.amount, 0);
 
-            // Aggiunge le entrate extra e sottrae le uscite variabili
             balance += (extraIncome - variableExpense);
         } else {
-            // Per i mesi successivi sommiamo il margine netto mensile completo
-            const margin = getMonthNetMargin(item.key, item.year);
-            balance += margin;
+            // Per i mesi successivi aggiunge il margine netto completo
+            balance += getMonthNetMargin(item.key, item.year);
         }
     }
 
