@@ -10,7 +10,7 @@ Codice sw.js Corretto
 Sostituisci l'intero contenuto del tuo file sw.js con questo codice pulito ed ottimizzato:
 
 JavaScript
-const CACHE_NAME = 'budget-app-v6';
+const CACHE_NAME = 'budget-app-v7';
 
 // File locali dell'applicazione
 const LOCAL_ASSETS = [
@@ -73,21 +73,21 @@ self.addEventListener('fetch', (e) => {
   // 4. Strategia Stale-While-Revalidate senza errori di stream clone
   e.respondWith(
     caches.match(e.request).then((cachedResponse) => {
-      const fetchPromise = fetch(e.request)
-        .then((networkResponse) => {
-          // Verifica validità risposta prima di clonarla
-          if (
-            networkResponse && 
-            (networkResponse.status === 200 || networkResponse.type === 'opaque')
-          ) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(e.request, responseToCache);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => cachedResponse);
+      const fetchPromise = fetch(e.request).then((networkResponse) => {
+  if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
+    
+    // 1. CLONA SUBITO IL RISULTATO IN UNA VARIABILE DEDICATA
+    const responseToCache = networkResponse.clone();
+
+    // 2. SALVA LA COPIA IN CACHE
+    caches.open(CACHE_NAME).then((cache) => {
+      cache.put(e.request, responseToCache);
+    });
+  }
+  
+  // 3. RESTITUISCI L'ORIGINALE
+  return networkResponse;
+}).catch(() => cachedResponse);
 
       return cachedResponse || fetchPromise;
     })
