@@ -297,12 +297,14 @@ function calculateCumulativeAccountBalance() {
     for (const yr of allYears) {
         const months = YEAR_MONTHS[yr] || [];
         for (const m of months) {
-            const summary = calculateMonthSummary(m.key);
-            runningBalance += summary.netMonthlyMargin;
-
+            // Se siamo arrivati al mese corrente, interrompiamo prima di sommare il suo margine:
+            // questo restituisce il saldo accumulato fino alla fine del mese PRECEDENTE (es. saldo al 1° del mese).
             if (m.key === currentMonthKey) {
                 return runningBalance;
             }
+
+            const summary = calculateMonthSummary(m.key);
+            runningBalance += summary.netMonthlyMargin;
         }
     }
 
