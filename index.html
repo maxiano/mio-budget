@@ -335,7 +335,7 @@
         </div>
     </div>
 
-    <script>
+<script>
     // 1. Configurazione Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyDFQbKY8HA83xRlFk_OMNIFF_BAQMuP8HI",
@@ -359,7 +359,7 @@
     }
 
     // Costanti
-    const INITIAL_ACCOUNT_BALANCE = 5348.43; // Base iniziale aggiornata
+    const INITIAL_ACCOUNT_BALANCE = 5348.43; // Base iniziale di partenza (inizio Agosto 2026)
     const FIXED_INPS_INCOME = 101.90;
 
     // Ordine cronologico globale dei mesi per il calcolo del conto accumulato
@@ -608,25 +608,26 @@
         return totalIncome - (totalFixedMonth + totalVariable);
     }
 
-    // Calcola il saldo del Conto Generale considerando la base iniziale di Agosto già al netto e sommando i margini/INPS
- // Calcola il saldo del Conto Generale accumulato al 1° di ogni mese
-function calculateCumulativeAccountBalance() {
-    const currentIndex = CHRONOLOGICAL_MONTHS.findIndex(m => m.key === currentMonth && m.year === currentYear);
-    const targetIndex = currentIndex !== -1 ? currentIndex : 0;
+    // Calcola sia la Base Iniziale (saldo ad inizio mese) sia il Saldo Finale di fine mese
+    function calculateCumulativeAccountBalance() {
+        const currentIndex = CHRONOLOGICAL_MONTHS.findIndex(m => m.key === currentMonth && m.year === currentYear);
+        const targetIndex = currentIndex !== -1 ? currentIndex : 0;
 
-    // Partenza dal saldo base iniziale
-    let balance = INITIAL_ACCOUNT_BALANCE;
+        let runningBalance = INITIAL_ACCOUNT_BALANCE;
 
-    // Somma il margine netto (+ entrate - uscite fisse - uscite variabili) di ogni mese fino a quello selezionato
-    for (let i = 0; i <= targetIndex; i++) {
-        const item = CHRONOLOGICAL_MONTHS[i];
-        const margin = getMonthNetMargin(item.key, item.year);
-        balance += margin;
+        // Somma i margini di tutti i mesi PRECEDENTI a quello corrente
+        for (let i = 0; i < targetIndex; i++) {
+            const item = CHRONOLOGICAL_MONTHS[i];
+            runningBalance += getMonthNetMargin(item.key, item.year);
+        }
+
+        const startOfMonthBalance = runningBalance; // Saldo al 1° del mese
+        const currentMargin = getMonthNetMargin(CHRONOLOGICAL_MONTHS[targetIndex].key, CHRONOLOGICAL_MONTHS[targetIndex].year);
+        const endOfMonthBalance = startOfMonthBalance + currentMargin; // Saldo a fine mese
+        const currentLabel = CHRONOLOGICAL_MONTHS[targetIndex] ? CHRONOLOGICAL_MONTHS[targetIndex].label : "";
+
+        return { startOfMonthBalance, endOfMonthBalance, currentLabel };
     }
-
-    const currentLabel = CHRONOLOGICAL_MONTHS[targetIndex] ? CHRONOLOGICAL_MONTHS[targetIndex].label : "";
-    return { balance, currentLabel };
-}
 
     function updateView() {
         const monthConfig = getCurrentMonthConfig();
@@ -639,9 +640,15 @@ function calculateCumulativeAccountBalance() {
         const totalVariable = currentExpenses.reduce((sum, item) => sum + item.amount, 0);
         const remaining = totalIncome - (totalFixedMonth + totalVariable);
 
-        // Aggiornamento Conto Generale
+        // Aggiornamento Conto Generale (Base Iniziale e Saldo Finale)
         const accountInfo = calculateCumulativeAccountBalance();
-        document.getElementById("displayTotalAccount").innerText = formatEuro(accountInfo.balance);
+        document.getElementById("displayTotalAccount").innerText = formatEuro(accountInfo.endOfMonthBalance);
+        
+        const displayInitialBase = document.getElementById("displayInitialBase");
+        if (displayInitialBase) {
+            displayInitialBase.innerText = formatEuro(accountInfo.startOfMonthBalance);
+        }
+        
         document.getElementById("accountCurrentMonthLabel").innerText = accountInfo.currentLabel;
 
         document.getElementById("displayIncome").innerText = formatEuro(totalIncome);
