@@ -139,7 +139,7 @@
                 <div id="displayVariable" class="text-lg md:text-xl font-bold text-rose-600">0,00 €</div>
                 <div class="mt-1 text-[10px] space-y-0.5 text-slate-500 border-t pt-1 border-slate-100">
                     <div class="flex justify-between"><span>⛽ Fuel:</span> <strong id="fuelBudgetBar">0/200€</strong></div>
-                    <div class="flex justify-between"><span>🏠 Casa:</span> <strong id="houseBudgetBar">0/400€</strong></div>
+                    <div class="flex justify-between"><span>🛒 Spesa Alimentare:</span> <strong id="foodBudgetBar">0/400€</strong></div>
                 </div>
             </div>
 
@@ -202,7 +202,7 @@
                         <select id="expenseCategory" class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-rose-500">
                             <option value="Carburante">⛽ Carburante (Max 200€)</option>
                             <option value="Casa & Manutenzione">🏠 Casa & Manutenzione (Max 400€)</option>
-                            <option value="Spesa Alimentare">🛒 Spesa Alimentare</option>
+                            <option value="Spesa Alimentare">🛒 Spesa Alimentare (Max 400€)</option>
                             <option value="Tempo Libero & Svago">🏔️ Tempo Libero / Trekking</option>
                             <option value="Varie">📦 Altre Uscite</option>
                         </select>
@@ -415,7 +415,7 @@
     let currentYear = "2026";
     let currentMonth = "Agosto_Prev";
 
-    const CATEGORY_BUDGETS = { "Carburante": 200.00, "Casa & Manutenzione": 400.00 };
+    const CATEGORY_BUDGETS = { "Carburante": 200.00, "Spesa Alimentare": 400.00 };
     const baseMonthlyFixed = [
         { cat: "Casa", name: "Affitto Mensile", amount: 650.00, desc: "Mensile (il 10)" },
         { cat: "Famiglia", name: "Mantenimento Valerio", amount: 305.00, desc: "Mensile" },
@@ -658,9 +658,9 @@
         document.getElementById("displayVariable").innerText = formatEuro(totalVariable);
 
         const totalFuel = currentExpenses.filter(e => e.category === "Carburante").reduce((s, e) => s + e.amount, 0);
-        const totalHouse = currentExpenses.filter(e => e.category === "Casa & Manutenzione").reduce((s, e) => s + e.amount, 0);
+        const totalFood = currentExpenses.filter(e => e.category === "Spesa Alimentare").reduce((s, e) => s + e.amount, 0);
         document.getElementById("fuelBudgetBar").innerText = `${Math.round(totalFuel)}/200€`;
-        document.getElementById("houseBudgetBar").innerText = `${Math.round(totalHouse)}/400€`;
+        document.getElementById("foodBudgetBar").innerText = `${Math.round(totalFood)}/400€`;
 
         const remainingElem = document.getElementById("displayRemaining");
         remainingElem.innerText = (remaining >= 0 ? "+" : "") + formatEuro(remaining);
