@@ -1,514 +1,467 @@
-/* ==========================================================================
-   CONFIGURAZIONE & DATI INIZIALI
-   ========================================================================== */
-const INITIAL_ACCOUNT_BALANCE = 5348.43;
+// 1. Inizializzazione Firebase
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    databaseURL: "YOUR_DATABASE_URL",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
 
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const auth = firebase.auth();
+const db = firebase.database();
+
+// 2. Costanti e Parametri Iniziali
+const INITIAL_ACCOUNT_BALANCE = 5348.43;
+let currentUser = null;
+let currentYear = "2026";
+let currentMonth = "Agosto_Prev";
+
+let expensesData = {};
+let incomesData = {};
+
+const CATEGORY_BUDGETS = {
+    "Carburante": 200,
+    "Spesa Alimentare": 400
+};
+
+// Uscite fisse base ricorrenti ogni mese
+const baseMonthlyFixed = [
+    { cat: "Affitto/Mutuo", name: "Quota Casa", amount: 500.00, desc: "Canone Mensile" },
+    { cat: "Finanziamenti", name: "Prestito Personale", amount: 250.00, desc: "Rata Mensile" },
+    { cat: "Abbonamenti", name: "Internet & Telefono", amount: 35.00, desc: "Canone Mensile" }
+];
+
+// 3. Definizione Cronologica Mesi & Ingressi Base (2026-2027)
 const YEAR_MONTHS = {
-    2026: [
-        { key: "2026-01", label: "Gennaio 2026", baseIncome: 1901.90 },
-        { key: "2026-02", label: "Febbraio 2026", baseIncome: 1901.90 },
-        { key: "2026-03", label: "Marzo 2026", baseIncome: 1901.90 },
-        { key: "2026-04", label: "Aprile 2026", baseIncome: 1901.90 },
-        { key: "2026-05", label: "Maggio 2026", baseIncome: 1901.90 },
-        { key: "2026-06", label: "Giugno 2026", baseIncome: 1901.90 },
-        { key: "2026-07", label: "Luglio 2026", baseIncome: 1901.90 },
-        { key: "2026-08", label: "Agosto 2026", baseIncome: 1901.90 },
-        { key: "2026-09", label: "Settembre 2026", baseIncome: 1901.90 },
-        { key: "2026-10", label: "Ottobre 2026", baseIncome: 1901.90 },
-        { key: "2026-11", label: "Novembre 2026", baseIncome: 1901.90 },
-        { key: "2026-12", label: "Dicembre 2026", baseIncome: 1901.90 }
+    "2026": [
+        { key: "Agosto_Prev", label: "Agosto (Prev)", baseIncome: 2100, breakdown: [{ name: "Stipendio Base", amount: 2100 }] },
+        { key: "Settembre", label: "Settembre", baseIncome: 2100, breakdown: [{ name: "Stipendio Base", amount: 2100 }] },
+        { key: "Ottobre", label: "Ottobre", baseIncome: 2100, breakdown: [{ name: "Stipendio Base", amount: 2100 }] },
+        { key: "Novembre", label: "Novembre", baseIncome: 2100, breakdown: [{ name: "Stipendio Base", amount: 2100 }] },
+        { key: "Dicembre", label: "Dicembre", baseIncome: 3500, breakdown: [{ name: "Stipendio Base", amount: 2100 }, { name: "Tredicesima", amount: 1400 }] }
+    ],
+    "2027": [
+        { key: "Gennaio", label: "Gennaio", baseIncome: 2100, breakdown: [{ name: "Stipendio Base", amount: 2100 }] },
+        { key: "Febbraio", label: "Febbraio", baseIncome: 2100, breakdown: [{ name: "Stipendio Base", amount: 2100 }] },
+        { key: "Marzo", label: "Marzo", baseIncome: 2100, breakdown: [{ name: "Stipendio Base", amount: 2100 }] },
+        { key: "Aprile", label: "Aprile", baseIncome: 2100, breakdown: [{ name: "Stipendio Base", amount: 2100 }] },
+        { key: "Maggio", label: "Maggio", baseIncome: 2100, breakdown: [{ name: "Stipendio Base", amount: 2100 }] },
+        { key: "Giugno", label: "Giugno", baseIncome: 3500, breakdown: [{ name: "Stipendio Base", amount: 2100 }, { name: "Quattordicesima", amount: 1400 }] },
+        { key: "Luglio", label: "Luglio", baseIncome: 2100, breakdown: [{ name: "Stipendio Base", amount: 2100 }] },
+        { key: "Agosto", label: "Agosto", baseIncome: 2100, breakdown: [{ name: "Stipendio Base", amount: 2100 }] },
+        { key: "Settembre_27", label: "Settembre", baseIncome: 2100, breakdown: [{ name: "Stipendio Base", amount: 2100 }] },
+        { key: "Ottobre_27", label: "Ottobre", baseIncome: 2100, breakdown: [{ name: "Stipendio Base", amount: 2100 }] },
+        { key: "Novembre_27", label: "Novembre", baseIncome: 2100, breakdown: [{ name: "Stipendio Base", amount: 2100 }] },
+        { key: "Dicembre_27", label: "Dicembre", baseIncome: 3500, breakdown: [{ name: "Stipendio Base", amount: 2100 }, { name: "Tredicesima", amount: 1400 }] }
     ]
 };
 
-const baseMonthlyFixed = [
-    { title: "Affitto", amount: 620 },
-    { title: "Mantenimento Valerio", amount: 350 },
-    { title: "Spesa Cibo", amount: 250 },
-    { title: "Prestito Compass", amount: 200 },
-    { title: "Prestito Agos", amount: 151 },
-    { title: "Luce e Gas (Accantonamento)", amount: 100 },
-    { title: "Infortuni Generali", amount: 68 },
-    { title: "TIM Fibra", amount: 30 },
-    { title: "Iliad Mobile", amount: 10 }
+const CHRONOLOGICAL_MONTHS = [
+    { key: "Agosto_Prev", year: "2026", label: "Agosto 2026" },
+    { key: "Settembre", year: "2026", label: "Settembre 2026" },
+    { key: "Ottobre", year: "2026", label: "Ottobre 2026" },
+    { key: "Novembre", year: "2026", label: "Novembre 2026" },
+    { key: "Dicembre", year: "2026", label: "Dicembre 2026" },
+    { key: "Gennaio", year: "2027", label: "Gennaio 2027" },
+    { key: "Febbraio", year: "2027", label: "Febbraio 2027" },
+    { key: "Marzo", year: "2027", label: "Marzo 2027" },
+    { key: "Aprile", year: "2027", label: "Aprile 2027" },
+    { key: "Maggio", year: "2027", label: "Maggio 2027" },
+    { key: "Giugno", year: "2027", label: "Giugno 2027" },
+    { key: "Luglio", year: "2027", label: "Luglio 2027" },
+    { key: "Agosto", year: "2027", label: "Agosto 2027" },
+    { key: "Settembre_27", year: "2027", label: "Settembre 2027" },
+    { key: "Ottobre_27", year: "2027", label: "Ottobre 2027" },
+    { key: "Novembre_27", year: "2027", label: "Novembre 2027" },
+    { key: "Dicembre_27", year: "2027", label: "Dicembre 2027" }
 ];
 
+// 4. Uscite Periodiche Extra/Stagionali
 const periodicExpenses = {
-    "2026-05": [{ title: "TARI (Tassa Rifiuti)", amount: 110 }],
-    "2026-09": [{ title: "Assicurazione Scooter", amount: 320 }],
-    "2026-11": [{ title: "TARI (Tassa Rifiuti)", amount: 110 }]
+    "Agosto_Prev": [
+        { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Agosto" }
+    ],
+    "Settembre": [
+        { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Settembre" }
+    ],
+    "Ottobre": [
+        { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Ottobre" }
+    ],
+    "Novembre": [
+        { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Novembre" },
+        { cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }
+    ],
+    "Dicembre": [
+        { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Dicembre" }
+    ],
+    "Gennaio": [
+        { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Gennaio" }
+    ],
+    "Febbraio": [
+        { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Febbraio" }
+    ],
+    "Marzo": [
+        { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Marzo" },
+        { cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }
+    ],
+    "Aprile": [
+        { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Aprile" }
+    ],
+    "Maggio": [
+        { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Maggio" },
+        { cat: "Trasporti", name: "Bollo Auto", amount: 170.00, desc: "Scadenza Annuale" }
+    ],
+    "Giugno": [
+        { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Giugno" },
+        { cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" },
+        { cat: "Tempo Libero", name: "Rimessaggio Roulotte", amount: 500.00, desc: "Scadenza Annuale" }
+    ],
+    "Luglio": [
+        { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Luglio" },
+        { cat: "Trasporti", name: "Assicurazione Auto", amount: 360.00, desc: "Scadenza Annuale" }
+    ],
+    "Agosto": [
+        { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Agosto" },
+        { cat: "Extra", name: "Campeggio Estivo", amount: 1800.00, desc: "Quota Straordinaria" }
+    ],
+    "Settembre_27": [
+        { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Settembre" }
+    ],
+    "Ottobre_27": [
+        { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Ottobre" }
+    ],
+    "Novembre_27": [
+        { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Novembre" },
+        { cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }
+    ],
+    "Dicembre_27": [
+        { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Dicembre" }
+    ]
 };
 
-/* ==========================================================================
-   STATO DELL'APPLICAZIONE
-   ========================================================================== */
-let currentYear = 2026;
-let currentMonthKey = "2026-08";
-let monthlyData = {}; 
-let budgetRef = null;
-
-/* ==========================================================================
-   INIZIALIZZAZIONE FIREBASE REALTIME DATABASE
-   ========================================================================== */
-let auth = null;
-let db = null;
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDFQbKY8HA83xRlFk_OMNIFF_BAQMuP8HI",
-  authDomain: "gestione-spese-d905a.firebaseapp.com",
-  databaseURL: "https://gestione-spese-d905a-default-rtdb.firebaseio.com",
-  projectId: "gestione-spese-d905a",
-  storageBucket: "gestione-spese-d905a.firebasestorage.app",
-  messagingSenderId: "518124443080",
-  appId: "1:518124443080:web:676fce0a4e6ad6168d9cfd",
-  measurementId: "G-T6B3VVSZNQ"
-};
-
-if (typeof firebase !== 'undefined') {
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
-    auth = firebase.auth();
-    db = firebase.database();
-}
-
-/* ==========================================================================
-   GESTORI EVENTI & LIFECYCLE
-   ========================================================================== */
+// 5. Listener DOM e Inizializzazione
 document.addEventListener("DOMContentLoaded", () => {
-    setupYearAndMonthSelectors();
+    const today = new Date();
+    document.getElementById("expenseDate").valueAsDate = today;
+    document.getElementById("incomeDate").valueAsDate = today;
     
+    populateMonthDropdown();
+
+    if (typeof lucide !== "undefined") {
+        lucide.createIcons();
+    }
+
     if (auth) {
         auth.onAuthStateChanged(user => {
-            const loginSection = document.getElementById("loginSection") || document.getElementById("authScreen");
-            const appContent = document.getElementById("appContent") || document.getElementById("mainApp");
-
             if (user) {
-                if (loginSection) loginSection.classList.add("hidden");
-                if (loginSection) loginSection.style.display = "none";
-                if (appContent) appContent.classList.remove("hidden");
-                if (appContent) appContent.style.display = "block";
-                loadFirebaseData();
+                currentUser = user;
+                document.getElementById("authScreen").classList.add("hidden");
+                listenToDatabase();
             } else {
-                if (loginSection) loginSection.classList.remove("hidden");
-                if (loginSection) loginSection.style.display = "block";
-                if (appContent) appContent.classList.add("hidden");
-                if (appContent) appContent.style.display = "none";
-                if (budgetRef) {
-                    budgetRef.off();
-                    budgetRef = null;
-                }
+                currentUser = null;
+                document.getElementById("authScreen").classList.remove("hidden");
             }
         });
     }
-
-    document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
-            closeIncomeModal();
-            closeFixedModal();
-        }
-    });
 });
 
-// Esposizione nell'ambito globale per far funzionare l'evento inline onsubmit="handleAuth(event)"
-window.handleAuth = function(event) {
-    if (event) event.preventDefault();
-
-    if (!auth) {
-        alert("Servizio di autenticazione non disponibile. Verificare la connessione a Firebase.");
-        return;
-    }
-
-    // Supporto sia per ID 'email'/'password' che 'authEmail'/'authPassword'
-    const emailInput = document.getElementById("email") || document.getElementById("authEmail");
-    const passwordInput = document.getElementById("password") || document.getElementById("authPassword");
-    const errorDiv = document.getElementById("authError");
-
-    if (!emailInput || !passwordInput) {
-        console.error("Campi input email o password non trovati nel DOM.");
-        return;
-    }
-
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
-
-    if (!email || !password) {
-        if (errorDiv) {
-            errorDiv.innerText = "Inserisci email e password.";
-            errorDiv.classList.remove("hidden");
-        } else {
-            alert("Inserisci email e password.");
-        }
-        return;
-    }
-
-    auth.signInWithEmailAndPassword(email, password)
-        .then(() => {
-            emailInput.value = "";
-            passwordInput.value = "";
-            if (errorDiv) errorDiv.classList.add("hidden");
-        })
-        .catch(error => {
-            console.error("Errore di autenticazione:", error);
-            if (errorDiv) {
-                errorDiv.innerText = "Errore di accesso: " + error.message;
-                errorDiv.classList.remove("hidden");
-            } else {
-                alert("Errore di accesso: " + error.message);
-            }
-        });
-};
-
-function setupYearAndMonthSelectors() {
-    const yearSelect = document.getElementById("yearSelect");
+function populateMonthDropdown() {
     const monthSelect = document.getElementById("monthSelect");
-
-    if (!yearSelect || !monthSelect) return;
-
-    yearSelect.value = currentYear;
-    updateMonthDropdownOptions();
-
-    yearSelect.addEventListener("change", (e) => {
-        currentYear = parseInt(e.target.value, 10);
-        updateMonthDropdownOptions();
-        const availableMonths = YEAR_MONTHS[currentYear] || [];
-        if (availableMonths.length > 0) {
-            currentMonthKey = availableMonths[0].key;
-            monthSelect.value = currentMonthKey;
-        }
-        renderAll();
-    });
-
-    monthSelect.addEventListener("change", (e) => {
-        currentMonthKey = e.target.value;
-        renderAll();
-    });
-}
-
-function updateMonthDropdownOptions() {
-    const monthSelect = document.getElementById("monthSelect");
-    if (!monthSelect) return;
-
     monthSelect.innerHTML = "";
     const months = YEAR_MONTHS[currentYear] || [];
     
     months.forEach(m => {
         const opt = document.createElement("option");
         opt.value = m.key;
-        opt.textContent = m.label;
-        if (m.key === currentMonthKey) opt.selected = true;
+        opt.className = "bg-slate-800";
+        opt.innerText = `${m.label} (${m.baseIncome.toLocaleString('it-IT')} €)`;
         monthSelect.appendChild(opt);
     });
+
+    currentMonth = months[0].key;
+    monthSelect.value = currentMonth;
 }
 
-/* ==========================================================================
-   SINCRONIZZAZIONE FIREBASE REALTIME DATABASE
-   ========================================================================== */
-function loadFirebaseData() {
-    const user = auth ? auth.currentUser : null;
-    if (!user || !db) return;
+function changeYear() {
+    currentYear = document.getElementById("yearSelect").value;
+    populateMonthDropdown();
+    updateView();
+}
 
-    if (budgetRef) budgetRef.off();
+function changeMonth() {
+    currentMonth = document.getElementById("monthSelect").value;
+    updateView();
+}
 
-    budgetRef = db.ref(`users/${user.uid}/budgetData`);
+async function handleAuth(e) {
+    e.preventDefault();
+    if (!auth) return alert("Firebase Auth non è pronto.");
+    
+    const email = document.getElementById("authEmail").value;
+    const password = document.getElementById("authPassword").value;
+    const errDiv = document.getElementById("authError");
+    errDiv.classList.add("hidden");
 
-    budgetRef.on("value", snapshot => {
-        monthlyData = snapshot.val() || {};
-        renderAll();
-    }, error => {
-        console.error("Errore durante il recupero dati da Realtime Database:", error);
+    try {
+        await auth.signInWithEmailAndPassword(email, password);
+    } catch (err) {
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+            try {
+                await auth.createUserWithEmailAndPassword(email, password);
+            } catch (createErr) {
+                errDiv.innerText = createErr.message;
+                errDiv.classList.remove("hidden");
+            }
+        } else {
+            errDiv.innerText = err.message;
+            errDiv.classList.remove("hidden");
+        }
+    }
+}
+
+function logout() { 
+    if (auth) auth.signOut(); 
+}
+
+function listenToDatabase() {
+    if (!db) return;
+    db.ref("user_budget").on("value", (snapshot) => {
+        const data = snapshot.val() || {};
+        expensesData = data.expenses || {};
+        incomesData = data.incomes || {};
+        updateView();
     });
 }
 
-function saveDataToFirebase(monthKey) {
-    const user = auth ? auth.currentUser : null;
-    if (!user || !db) return;
-
-    const dataToSave = monthlyData[monthKey] || { incomes: [], fixedOverrides: [], variableExpenses: [] };
-
-    db.ref(`users/${user.uid}/budgetData/${monthKey}`)
-        .set(dataToSave)
-        .catch(error => {
-            console.error("Errore nel salvataggio su Realtime Database:", error);
-        });
+function getMonthFixedExpenses(month) {
+    return [...baseMonthlyFixed, ...(periodicExpenses[month] || [])];
 }
 
-/* ==========================================================================
-   LOGICA DI CALCOLO
-   ========================================================================== */
-function getFixedExpensesForMonth(monthKey) {
-    let list = baseMonthlyFixed.map(item => ({ ...item }));
-    
-    if (periodicExpenses[monthKey]) {
-        list = list.concat(periodicExpenses[monthKey].map(item => ({ ...item })));
-    }
-
-    const savedData = monthlyData[monthKey];
-    if (savedData && Array.isArray(savedData.fixedOverrides)) {
-        savedData.fixedOverrides.forEach(override => {
-            const index = list.findIndex(f => f.title === override.title);
-            if (index !== -1) {
-                list[index].amount = override.amount;
-            } else {
-                list.push({ title: override.title, amount: override.amount });
-            }
-        });
-    }
-
-    return list;
+function getCurrentMonthConfig() {
+    const allMonths = [...YEAR_MONTHS["2026"], ...YEAR_MONTHS["2027"]];
+    return allMonths.find(m => m.key === currentMonth) || { baseIncome: 0, tag: "Base", breakdown: [] };
 }
 
-function calculateMonthSummary(monthKey) {
-    const [yearStr] = monthKey.split("-");
-    const yearNum = parseInt(yearStr, 10);
-    const yearMonths = YEAR_MONTHS[yearNum] || [];
-    const monthConf = yearMonths.find(m => m.key === monthKey) || { baseIncome: 1901.90 };
+// Calcola il margine netto di un singolo mese
+function getMonthNetMargin(mKey, mYear) {
+    const yearMonths = YEAR_MONTHS[mYear] || [];
+    const monthConf = yearMonths.find(m => m.key === mKey) || { baseIncome: 0 };
 
-    const data = monthlyData[monthKey] || { incomes: [], fixedOverrides: [], variableExpenses: [] };
-    const incomesList = Array.isArray(data.incomes) ? data.incomes : [];
-    const variableExpensesList = Array.isArray(data.variableExpenses) ? data.variableExpenses : [];
+    const currentExpenses = Object.values(expensesData[mKey] || {});
+    const currentIncomes = Object.values(incomesData[mKey] || {});
 
-    const extraIncomesTotal = incomesList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
-    const totalIncome = monthConf.baseIncome + extraIncomesTotal;
+    const extraIncomeTotal = currentIncomes.reduce((sum, item) => sum + item.amount, 0);
+    const totalIncome = monthConf.baseIncome + extraIncomeTotal;
+    const totalFixedMonth = getMonthFixedExpenses(mKey).reduce((sum, item) => sum + item.amount, 0);
+    const totalVariable = currentExpenses.reduce((sum, item) => sum + item.amount, 0);
 
-    const fixedExpensesList = getFixedExpensesForMonth(monthKey);
-    const totalFixed = fixedExpensesList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
-
-    const variableExpensesTotal = variableExpensesList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
-
-    const netMonthlyMargin = totalIncome - totalFixed - variableExpensesTotal;
-
-    return {
-        baseIncome: monthConf.baseIncome,
-        extraIncomesTotal,
-        totalIncome,
-        totalFixed,
-        variableExpensesTotal,
-        netMonthlyMargin,
-        fixedExpensesList,
-        incomesList,
-        variableExpensesList
-    };
+    return totalIncome - (totalFixedMonth + totalVariable);
 }
 
+// Calcola sia la Base Iniziale (startOfMonthBalance) sia il Saldo Finale a fine mese
 function calculateCumulativeAccountBalance() {
+    const currentIndex = CHRONOLOGICAL_MONTHS.findIndex(m => m.key === currentMonth && m.year === currentYear);
+    const targetIndex = currentIndex !== -1 ? currentIndex : 0;
+
     let runningBalance = INITIAL_ACCOUNT_BALANCE;
-    const allYears = Object.keys(YEAR_MONTHS).map(Number).sort((a, b) => a - b);
 
-    for (const yr of allYears) {
-        const months = YEAR_MONTHS[yr] || [];
-        for (const m of months) {
-            // Se siamo arrivati al mese corrente, interrompiamo prima di sommare il suo margine:
-            // questo restituisce il saldo accumulato fino alla fine del mese PRECEDENTE (es. saldo al 1° del mese).
-            if (m.key === currentMonthKey) {
-                return runningBalance;
-            }
+    for (let i = 0; i < targetIndex; i++) {
+        const item = CHRONOLOGICAL_MONTHS[i];
+        runningBalance += getMonthNetMargin(item.key, item.year);
+    }
 
-            const summary = calculateMonthSummary(m.key);
-            runningBalance += summary.netMonthlyMargin;
+    const startOfMonthBalance = runningBalance;
+    const currentMargin = getMonthNetMargin(CHRONOLOGICAL_MONTHS[targetIndex].key, CHRONOLOGICAL_MONTHS[targetIndex].year);
+    const endOfMonthBalance = startOfMonthBalance + currentMargin;
+    const currentLabel = CHRONOLOGICAL_MONTHS[targetIndex] ? CHRONOLOGICAL_MONTHS[targetIndex].label : "";
+
+    return { startOfMonthBalance, endOfMonthBalance, currentLabel };
+}
+
+function updateView() {
+    const monthConfig = getCurrentMonthConfig();
+    const currentExpenses = Object.values(expensesData[currentMonth] || {});
+    const currentIncomes = Object.values(incomesData[currentMonth] || {});
+
+    const extraIncomeTotal = currentIncomes.reduce((sum, item) => sum + item.amount, 0);
+    const totalIncome = monthConfig.baseIncome + extraIncomeTotal;
+    const totalFixedMonth = getMonthFixedExpenses(currentMonth).reduce((sum, item) => sum + item.amount, 0);
+    const totalVariable = currentExpenses.reduce((sum, item) => sum + item.amount, 0);
+    const remaining = totalIncome - (totalFixedMonth + totalVariable);
+
+    // Aggiornamento Conto Generale
+    const accountInfo = calculateCumulativeAccountBalance();
+    document.getElementById("displayTotalAccount").innerText = formatEuro(accountInfo.endOfMonthBalance);
+    
+    const displayInitialBaseElements = document.querySelectorAll(".displayInitialBase, #displayInitialBase");
+    displayInitialBaseElements.forEach(el => {
+        el.innerText = formatEuro(accountInfo.startOfMonthBalance);
+    });
+
+    document.getElementById("accountCurrentMonthLabel").innerText = accountInfo.currentLabel;
+
+    document.getElementById("displayIncome").innerText = formatEuro(totalIncome);
+    document.getElementById("displayFixed").innerText = formatEuro(totalFixedMonth);
+    document.getElementById("displayVariable").innerText = formatEuro(totalVariable);
+
+    const totalFuel = currentExpenses.filter(e => e.category === "Carburante").reduce((s, e) => s + e.amount, 0);
+    const totalFood = currentExpenses.filter(e => e.category === "Spesa Alimentare").reduce((s, e) => s + e.amount, 0);
+    document.getElementById("fuelBudgetBar").innerText = `${Math.round(totalFuel)}/200€`;
+    document.getElementById("foodBudgetBar").innerText = `${Math.round(totalFood)}/400€`;
+
+    const remainingElem = document.getElementById("displayRemaining");
+    remainingElem.innerText = (remaining >= 0 ? "+" : "") + formatEuro(remaining);
+    remainingElem.className = remaining < 0 ? "text-lg md:text-xl font-bold text-rose-400" : "text-lg md:text-xl font-bold text-emerald-400";
+
+    renderTables(currentIncomes, currentExpenses);
+    if (typeof lucide !== "undefined") lucide.createIcons();
+}
+
+function addIncome(e) {
+    e.preventDefault();
+    if (!db) return;
+    const cat = document.getElementById("incomeCategory").value;
+    const amount = parseFloat(document.getElementById("incomeAmount").value);
+    const note = document.getElementById("incomeNote").value.trim() || "-";
+    const date = document.getElementById("incomeDate").value;
+    const newId = Date.now().toString();
+
+    db.ref(`user_budget/incomes/${currentMonth}/${newId}`).set({
+        id: newId, category: cat, amount, note, date
+    });
+
+    document.getElementById("incomeAmount").value = "";
+    document.getElementById("incomeNote").value = "";
+}
+
+function addExpense(e) {
+    e.preventDefault();
+    if (!db) return;
+    const cat = document.getElementById("expenseCategory").value;
+    const amount = parseFloat(document.getElementById("expenseAmount").value);
+    const note = document.getElementById("expenseNote").value.trim() || "-";
+    const date = document.getElementById("expenseDate").value;
+
+    const currentExpenses = Object.values(expensesData[currentMonth] || {});
+    if (CATEGORY_BUDGETS[cat]) {
+        const limit = CATEGORY_BUDGETS[cat];
+        const currentSpent = currentExpenses.filter(i => i.category === cat).reduce((s, i) => s + i.amount, 0);
+        if (currentSpent + amount > limit) {
+            alert(`⚠️ LIMITE SUPERATO!\n\nPer "${cat}" hai impostato un tetto di ${formatEuro(limit)}.\nSpesi finora: ${formatEuro(currentSpent)}.`);
+            return;
         }
     }
 
-    return runningBalance;
+    const newId = Date.now().toString();
+    db.ref(`user_budget/expenses/${currentMonth}/${newId}`).set({
+        id: newId, category: cat, amount, note, date
+    });
+
+    document.getElementById("expenseAmount").value = "";
+    document.getElementById("expenseNote").value = "";
 }
 
-/* ==========================================================================
-   RENDERING INTERFACCIA UTENTE
-   ========================================================================== */
-function renderAll() {
-    renderKPIs();
-    renderTables();
-}
+function deleteIncome(id) { if (db) db.ref(`user_budget/incomes/${currentMonth}/${id}`).remove(); }
+function deleteExpense(id) { if (db) db.ref(`user_budget/expenses/${currentMonth}/${id}`).remove(); }
 
-function renderKPIs() {
-    const summary = calculateMonthSummary(currentMonthKey);
-    const cumulativeBalance = calculateCumulativeAccountBalance();
-
-    const elTotalIncome = document.getElementById("kpiTotalIncome");
-    const elTotalFixed = document.getElementById("kpiTotalFixed");
-    const elNetMargin = document.getElementById("kpiNetMargin");
-    const elCumulativeBalance = document.getElementById("kpiCumulativeBalance");
-
-    if (elTotalIncome) elTotalIncome.textContent = formatCurrency(summary.totalIncome);
-    if (elTotalFixed) elTotalFixed.textContent = formatCurrency(summary.totalFixed);
-    if (elNetMargin) {
-        elNetMargin.textContent = formatCurrency(summary.netMonthlyMargin);
-        elNetMargin.className = summary.netMonthlyMargin >= 0 ? "kpi-value positive" : "kpi-value negative";
-    }
-    if (elCumulativeBalance) {
-        elCumulativeBalance.textContent = formatCurrency(cumulativeBalance);
-        elCumulativeBalance.className = cumulativeBalance >= 0 ? "kpi-value positive" : "kpi-value negative";
+function clearIncomesData() {
+    if (confirm("Svuotare entrate extra del mese?") && db) {
+        db.ref(`user_budget/incomes/${currentMonth}`).remove();
     }
 }
 
-function renderTables() {
-    const summary = calculateMonthSummary(currentMonthKey);
+function clearExpensesData() {
+    if (confirm("Svuotare uscite variabili del mese?") && db) {
+        db.ref(`user_budget/expenses/${currentMonth}`).remove();
+    }
+}
 
-    // Tabella Entrate Extra
-    const incomesTableBody = document.querySelector("#incomesTable tbody");
-    if (incomesTableBody) {
-        incomesTableBody.innerHTML = "";
-        const sortedIncomes = [...summary.incomesList].sort((a, b) => 
-            (b.date || "").localeCompare(a.date || "")
-        );
+function renderTables(incomes, expenses) {
+    const incBody = document.getElementById("incomeTableBody");
+    const expBody = document.getElementById("expenseTableBody");
+    incBody.innerHTML = ""; expBody.innerHTML = "";
 
-        sortedIncomes.forEach(inc => {
+    document.getElementById("emptyIncomeMessage").classList.toggle("hidden", incomes.length > 0);
+    document.getElementById("emptyExpenseMessage").classList.toggle("hidden", expenses.length > 0);
+
+    incomes.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(i => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td class="p-2">${formatDate(i.date)}</td><td class="p-2"><span class="bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded text-[10px] font-bold border border-emerald-500/20">${i.category}</span></td><td class="p-2 text-slate-400">${i.note}</td><td class="p-2 text-right font-bold text-emerald-400">+${formatEuro(i.amount)}</td><td class="p-2 text-center"><button onclick="deleteIncome('${i.id}')" class="text-slate-500 hover:text-rose-400"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></td>`;
+        incBody.appendChild(tr);
+    });
+
+    expenses.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(e => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td class="p-2">${formatDate(e.date)}</td><td class="p-2"><span class="bg-rose-500/10 text-rose-400 px-1.5 py-0.5 rounded text-[10px] font-bold border border-rose-500/20">${e.category}</span></td><td class="p-2 text-slate-400">${e.note}</td><td class="p-2 text-right font-bold text-slate-100">-${formatEuro(e.amount)}</td><td class="p-2 text-center"><button onclick="deleteExpense('${e.id}')" class="text-slate-500 hover:text-rose-400"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></td>`;
+        expBody.appendChild(tr);
+    });
+}
+
+// Modal Dettaglio Entrate
+function openIncomeModal() {
+    const monthConfig = getCurrentMonthConfig();
+    document.getElementById("modalIncomeMonthName").innerText = `${monthConfig.label} ${currentYear}`;
+    const modalBody = document.getElementById("modalIncomeTableBody");
+    modalBody.innerHTML = "";
+    
+    let total = 0;
+
+    if (monthConfig.breakdown && monthConfig.breakdown.length > 0) {
+        monthConfig.breakdown.forEach(item => {
+            total += item.amount;
             const tr = document.createElement("tr");
             tr.innerHTML = `
-                <td>${escapeHtml(inc.title)}</td>
-                <td>${formatCurrency(inc.amount)}</td>
-                <td>${escapeHtml(inc.date || '-')}</td>
-                <td>
-                    <button class="btn-icon" onclick="deleteIncome('${inc.id}')" title="Elimina">🗑️</button>
-                </td>
+                <td class="p-2 font-semibold text-emerald-400"><span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[10px]">Fissa</span></td>
+                <td class="p-2 font-medium text-slate-200">${item.name}</td>
+                <td class="p-2 text-slate-400">Ricorrente mensile</td>
+                <td class="p-2 text-right font-bold text-emerald-400">+${formatEuro(item.amount)}</td>
             `;
-            incomesTableBody.appendChild(tr);
+            modalBody.appendChild(tr);
         });
     }
 
-    // Tabella Uscite Fisse
-    const fixedTableBody = document.querySelector("#fixedExpensesTable tbody");
-    if (fixedTableBody) {
-        fixedTableBody.innerHTML = "";
-        summary.fixedExpensesList.forEach(fix => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td>${escapeHtml(fix.title)}</td>
-                <td>${formatCurrency(fix.amount)}</td>
-                <td>
-                    <button class="btn-icon" onclick="openEditFixedModal('${escapeHtml(fix.title)}', ${fix.amount})" title="Modifica">✏️</button>
-                </td>
-            `;
-            fixedTableBody.appendChild(tr);
-        });
-    }
+    const currentIncomes = Object.values(incomesData[currentMonth] || {});
+    currentIncomes.forEach(i => {
+        total += i.amount;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td class="p-2 font-semibold text-blue-400"><span class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded text-[10px]">Extra</span></td>
+            <td class="p-2 font-medium text-slate-200">${i.category}</td>
+            <td class="p-2 text-slate-400">${i.note} (${formatDate(i.date)})</td>
+            <td class="p-2 text-right font-bold text-emerald-400">+${formatEuro(i.amount)}</td>
+        `;
+        modalBody.appendChild(tr);
+    });
+
+    document.getElementById("modalIncomeTotal").innerText = formatEuro(total);
+    document.getElementById("incomeModal").classList.remove("hidden");
 }
 
-/* ==========================================================================
-   OPERAZIONI DATI & MODALI
-   ========================================================================== */
-window.openIncomeModal = function() {
-    const modal = document.getElementById("incomeModal");
-    if (modal) modal.style.display = "flex";
-};
+function closeIncomeModal() { document.getElementById("incomeModal").classList.add("hidden"); }
 
-window.closeIncomeModal = function() {
-    const modal = document.getElementById("incomeModal");
-    if (modal) modal.style.display = "none";
-    const t = document.getElementById("incomeTitle");
-    const a = document.getElementById("incomeAmount");
-    const d = document.getElementById("incomeDate");
-    if (t) t.value = "";
-    if (a) a.value = "";
-    if (d) d.value = "";
-};
-
-window.saveIncome = function() {
-    const titleEl = document.getElementById("incomeTitle");
-    const amountEl = document.getElementById("incomeAmount");
-    const dateEl = document.getElementById("incomeDate");
-
-    const title = titleEl ? titleEl.value.trim() : "";
-    const amount = amountEl ? parseFloat(amountEl.value) : NaN;
-    const date = dateEl ? dateEl.value : "";
-
-    if (!title || isNaN(amount)) {
-        alert("Inserisci un titolo e un importo validi.");
-        return;
-    }
-
-    if (!monthlyData[currentMonthKey]) {
-        monthlyData[currentMonthKey] = { incomes: [], fixedOverrides: [], variableExpenses: [] };
-    }
-
-    const newIncome = {
-        id: "inc_" + Date.now(),
-        title,
-        amount,
-        date: date || new Date().toISOString().split("T")[0]
-    };
-
-    if (!Array.isArray(monthlyData[currentMonthKey].incomes)) {
-        monthlyData[currentMonthKey].incomes = [];
-    }
-    monthlyData[currentMonthKey].incomes.push(newIncome);
-
-    saveDataToFirebase(currentMonthKey);
-    closeIncomeModal();
-    renderAll();
-};
-
-window.deleteIncome = function(id) {
-    if (!monthlyData[currentMonthKey] || !Array.isArray(monthlyData[currentMonthKey].incomes)) return;
-
-    monthlyData[currentMonthKey].incomes = monthlyData[currentMonthKey].incomes.filter(i => i.id !== id);
-    saveDataToFirebase(currentMonthKey);
-    renderAll();
-};
-
-window.openEditFixedModal = function(title, currentAmount) {
-    const elTitle = document.getElementById("fixedTitle");
-    const elAmount = document.getElementById("fixedAmount");
-    if (elTitle) elTitle.value = title;
-    if (elAmount) elAmount.value = currentAmount;
-
-    const modal = document.getElementById("fixedModal");
-    if (modal) modal.style.display = "flex";
-};
-
-window.closeFixedModal = function() {
-    const modal = document.getElementById("fixedModal");
-    if (modal) modal.style.display = "none";
-};
-
-window.saveFixedOverride = function() {
-    const titleEl = document.getElementById("fixedTitle");
-    const amountEl = document.getElementById("fixedAmount");
-
-    const title = titleEl ? titleEl.value : "";
-    const amount = amountEl ? parseFloat(amountEl.value) : NaN;
-
-    if (isNaN(amount)) {
-        alert("Inserisci un importo valido.");
-        return;
-    }
-
-    if (!monthlyData[currentMonthKey]) {
-        monthlyData[currentMonthKey] = { incomes: [], fixedOverrides: [], variableExpenses: [] };
-    }
-    if (!Array.isArray(monthlyData[currentMonthKey].fixedOverrides)) {
-        monthlyData[currentMonthKey].fixedOverrides = [];
-    }
-
-    const overrides = monthlyData[currentMonthKey].fixedOverrides;
-    const index = overrides.findIndex(o => o.title === title);
-
-    if (index !== -1) {
-        overrides[index].amount = amount;
-    } else {
-        overrides.push({ title, amount });
-    }
-
-    saveDataToFirebase(currentMonthKey);
-    closeFixedModal();
-    renderAll();
-};
-
-window.logout = function() {
-    if (auth) auth.signOut();
-};
-
-/* ==========================================================================
-   UTILITIES
-   ========================================================================== */
-function formatCurrency(val) {
-    return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(val || 0);
+// Modal Uscite Fisse
+function openFixedModal() {
+    const monthConfig = getCurrentMonthConfig();
+    document.getElementById("modalMonthName").innerText = `${monthConfig.label} ${currentYear}`;
+    const modalBody = document.getElementById("modalFixedTableBody");
+    modalBody.innerHTML = "";
+    const list = getMonthFixedExpenses(currentMonth);
+    let total = 0;
+    list.forEach(i => {
+        total += i.amount;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td class="p-2 font-semibold text-blue-400">${i.cat}</td><td class="p-2 text-slate-200">${i.name}</td><td class="p-2 text-slate-400">${i.desc}</td><td class="p-2 text-right font-bold text-slate-100">${formatEuro(i.amount)}</td>`;
+        modalBody.appendChild(tr);
+    });
+    document.getElementById("modalFixedTotal").innerText = formatEuro(total);
+    document.getElementById("fixedModal").classList.remove("hidden");
 }
 
-function escapeHtml(str) {
-    return String(str)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
+function closeFixedModal() { document.getElementById("fixedModal").classList.add("hidden"); }
+function formatEuro(val) { return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(val); }
+function formatDate(dStr) { if (!dStr) return "-"; const [y, m, d] = dStr.split("-"); return `${d}/${m}`; }
