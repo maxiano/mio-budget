@@ -515,22 +515,48 @@
         }
     });
 
-    function populateMonthDropdown() {
-        const monthSelect = document.getElementById("monthSelect");
-        monthSelect.innerHTML = "";
-        const months = YEAR_MONTHS[currentYear] || [];
-        
-        months.forEach(m => {
-            const opt = document.createElement("option");
-            opt.value = m.key;
-            opt.className = "bg-slate-800";
-            opt.innerText = `${m.label} (${m.baseIncome.toLocaleString('it-IT')} €)`;
-            monthSelect.appendChild(opt);
-        });
+   function populateMonthDropdown() {
+    const monthSelect = document.getElementById("monthSelect");
+    monthSelect.innerHTML = "";
+    const months = YEAR_MONTHS[currentYear] || [];
 
+    if (months.length === 0) return;
+
+    months.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.key;
+        opt.className = "bg-slate-800";
+        opt.innerText = `${m.label} (${m.baseIncome.toLocaleString('it-IT')} €)`;
+        monthSelect.appendChild(opt);
+    });
+
+    // 1. Rileva il mese corrente dal sistema (0 = Gennaio, 8 = Settembre, ecc.)
+    const today = new Date();
+    const systemMonthIndex = today.getMonth();
+
+    // Nomi dei mesi corrispondenti agli indici JavaScript (0-11)
+    const monthNamesItalian = [
+        "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+        "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
+    ];
+    const currentMonthName = monthNamesItalian[systemMonthIndex];
+
+    // 2. Cerca se il mese reale corrente esiste tra le opzioni dell'anno selezionato
+    const matchedMonth = months.find(m => 
+        m.key === currentMonthName || 
+        m.key.startsWith(currentMonthName) || 
+        m.label.toLowerCase().includes(currentMonthName.toLowerCase())
+    );
+
+    // 3. Imposta il mese trovato o fallback sul primo disponibile dell'anno
+    if (matchedMonth) {
+        currentMonth = matchedMonth.key;
+    } else {
         currentMonth = months[0].key;
-        monthSelect.value = currentMonth;
     }
+
+    monthSelect.value = currentMonth;
+}
 
     function changeYear() {
         currentYear = document.getElementById("yearSelect").value;
