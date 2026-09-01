@@ -1,12 +1,13 @@
 // 1. Inizializzazione Firebase
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    databaseURL: "YOUR_DATABASE_URL",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDFQbKY8HA83xRlFk_OMNIFF_BAQMuP8HI",
+  authDomain: "gestione-spese-d905a.firebaseapp.com",
+  databaseURL: "https://gestione-spese-d905a-default-rtdb.firebaseio.com",
+  projectId: "gestione-spese-d905a",
+  storageBucket: "gestione-spese-d905a.firebasestorage.app",
+  messagingSenderId: "518124443080",
+  appId: "1:518124443080:web:676fce0a4e6ad6168d9cfd",
+  measurementId: "G-T6B3VVSZNQ"
 };
 
 if (!firebase.apps.length) {
