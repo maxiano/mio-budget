@@ -408,7 +408,7 @@
         ]
     };
 
-    // 4. Stato dell'Applicazione
+  // 4. Stato dell'Applicazione
     let currentUser = null;
     let expensesData = {};
     let incomesData = {};
@@ -428,64 +428,70 @@
     const periodicExpenses = {
         // --- 2026 ---
         "Agosto_Prev": [
-            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Agosto" }
+            // Nessuna luce bimestrale (era ad agosto, ora spostata a settembre/bimestrali corrette)
         ],
         "Settembre": [
+            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Settembre" },
             { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Settembre" }
         ],
         "Ottobre": [
-            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Ottobre" }
+            // Mese di stacco per la luce bimestrale (partendo da gennaio: gen, mar, mag, lug, set, nov)
         ],
         "Novembre": [
+            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Novembre" },
             { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Novembre" },
             { cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }
         ],
         "Dicembre": [
-            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Dicembre" }
+            // Mese di stacco per la luce
         ],
         // --- 2027 ---
         "Gennaio": [
+            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Gennaio" },
             { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Gennaio" }
         ],
         "Febbraio": [
-            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Febbraio" }
+            // Mese di stacco per la luce
         ],
         "Marzo": [
+            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Marzo" },
             { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Marzo" },
             { cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }
         ],
         "Aprile": [
-            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Aprile" }
+            // Mese di stacco per la luce
         ],
         "Maggio": [
+            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Maggio" },
             { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Maggio" },
             { cat: "Trasporti", name: "Bollo Auto", amount: 170.00, desc: "Scadenza Annuale" }
         ],
         "Giugno": [
-            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Giugno" },
             { cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" },
             { cat: "Tempo Libero", name: "Rimessaggio Roulotte", amount: 500.00, desc: "Scadenza Annuale" }
         ],
         "Luglio": [
+            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Luglio" },
             { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Luglio" },
             { cat: "Trasporti", name: "Assicurazione Auto", amount: 360.00, desc: "Scadenza Annuale" }
         ],
         "Agosto": [
-            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Agosto" },
             { cat: "Extra", name: "Campeggio Estivo", amount: 1800.00, desc: "Quota Straordinaria" }
         ],
         "Settembre_27": [
+            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Settembre" },
             { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Settembre" }
         ],
         "Ottobre_27": [
-            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Ottobre" }
+            // Mese di stacco per la luce
         ],
         "Novembre_27": [
+            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Novembre" },
             { cat: "Utenze", name: "Acqua (Bimestrale)", amount: 30.00, desc: "Scadenza Novembre" },
             { cat: "Utenze", name: "TARI (Tassa Rifiuti)", amount: 40.00, desc: "Quota Trimestrale" }
         ],
         "Dicembre_27": [
-            { cat: "Utenze", name: "Luce (Bimestrale)", amount: 130.00, desc: "Scadenza Dicembre" }
+            // Mese di stacco per la luce
         ]
     };
 
