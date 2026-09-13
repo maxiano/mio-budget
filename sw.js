@@ -1,10 +1,17 @@
-const CACHE_NAME = 'budget-app-v8';
+const CACHE_NAME = 'budget-app-v9';
 
-// Risorse locali dell'applicazione
+// Risorse locali dell'applicazione modulare
 const LOCAL_ASSETS = [
   './',
   './index.html',
   './app.js',
+  './js/constants.js',
+  './js/firebase-config.js',
+  './js/state.js',
+  './js/calculator.js',
+  './js/database.js',
+  './js/auth.js',
+  './js/ui.js',
   './manifest.json'
 ];
 
